@@ -12,21 +12,74 @@ namespace MiniC.Compiler
         Operator,
         Seperator,
         Identifier,
-        BoolLiteral,
-        StringLiteral,
-        CharLiteral,
-        NumberLiteral,
+        Literal,
         Comment,
         Macro,
     }
+
+    enum TokenForm
+    {
+        Int,
+        Float,
+        Char,
+        Void,
+        If,
+        Else,
+        While,
+        For,
+        Return,
+
+        LeftMultilineComment,
+        RightMultilineComment,
+        SinglelineComment,
+
+        Assignment,
+        Equal,
+        NotEqual,
+        GreaterEqual,
+        LessEqual,
+        GreaterThan,
+        LessThan,
+        Plus,
+        Minus,
+        Multiply,
+        Divide,
+        And,
+        Or,
+        Not,
+        LeftParen,
+        RightParen,
+        LeftSquare,
+        RightSquare,
+        LeftBracket,
+        RightBracket,
+        Comma,
+        SemiColon,
+        True,
+        False,
+        Null,
+
+        Macro,
+        Comment,
+
+        StringLiteral,
+        CharLiteral,
+        IntegerLiteral,
+        FloatLiteral,
+        BooleanLiteral,
+
+        Identifier
+    }
+
     class Token
     {
         public TokenType type;
+        public TokenForm form;
         public dynamic value;
         public int line;
         public int location;
         public override string ToString() {
-            return $"line {line}\t{type}\t{value}";
+            return $"line {line}\t{type}/{form}\t{value}";
         }
     }
 }

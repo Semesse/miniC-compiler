@@ -9,7 +9,7 @@ namespace MiniC.Compiler
     //Lexer 同时具备 Scaaner 的功能，在分割 token 的同时给出词法属性
     class Lexer
     {
-        public static readonly Dictionary<string, TokenType> keyTokens = new Dictionary<string, TokenType>(){
+        public static readonly Dictionary<string, TokenType> keyTokenType = new Dictionary<string, TokenType>(){
             {"int", TokenType.Keyword},
             {"float", TokenType.Keyword},
             {"char", TokenType.Keyword},
@@ -18,6 +18,7 @@ namespace MiniC.Compiler
             {"else", TokenType.Keyword},
             {"while", TokenType.Keyword},
             {"for", TokenType.Keyword},
+            {"return", TokenType.Keyword},
 
             {"/*", TokenType.Comment},
             {"*/", TokenType.Comment},
@@ -47,11 +48,58 @@ namespace MiniC.Compiler
             {",", TokenType.Seperator},
             {";", TokenType.Seperator},
 
-            {"true", TokenType.BoolLiteral},
-            {"false", TokenType.BoolLiteral},
-            {"null", TokenType.BoolLiteral},
+            {"true", TokenType.Literal},
+            {"false", TokenType.Literal},
+            {"null", TokenType.Literal},
 
             {"#", TokenType.Macro},
+        };
+
+        public static readonly Dictionary<string, TokenForm> keyTokenForm = new Dictionary<string, TokenForm>()
+        {
+            {"int", TokenForm.Int},
+            {"float", TokenForm.Float},
+            {"char", TokenForm.Char},
+            {"void", TokenForm.Void},
+            {"if", TokenForm.If},
+            {"else", TokenForm.Else},
+            {"while", TokenForm.While},
+            {"for", TokenForm.For},
+            {"return", TokenForm.Return},
+
+            {"/*", TokenForm.LeftMultilineComment},
+            {"*/", TokenForm.RightMultilineComment},
+            {"//", TokenForm.SinglelineComment},
+
+            {"==", TokenForm.Equal},
+            {"=", TokenForm.Assignment},
+            {">=", TokenForm.GreaterEqual},
+            {"<=", TokenForm.LessEqual},
+            {"!=", TokenForm.NotEqual},
+            {">", TokenForm.GreaterThan},
+            {"<", TokenForm.LessThan},
+            {"+", TokenForm.Plus},
+            {"-", TokenForm.Minus},
+            {"*", TokenForm.Multiply},
+            {"/", TokenForm.Divide},
+            {"&&", TokenForm.And},
+            {"||", TokenForm.Or},
+            {"!", TokenForm.Not},
+
+            {"(", TokenForm.LeftParen},
+            {")", TokenForm.RightParen},
+            {"[", TokenForm.LeftSquare},
+            {"]", TokenForm.RightSquare},
+            {"{", TokenForm.LeftBracket},
+            {"}", TokenForm.RightBracket},
+            {",", TokenForm.Comma},
+            {";", TokenForm.SemiColon},
+
+            {"true", TokenForm.True},
+            {"false", TokenForm.False},
+            {"null", TokenForm.Null},
+
+            {"#", TokenForm.Macro},
         };
 
         string source;
@@ -92,11 +140,11 @@ namespace MiniC.Compiler
 
                 //检查是否在 keyToken 列表中
                 bool flag = false;
-                foreach (string k in keyTokens.Keys)
+                foreach (string k in keyTokenType.Keys)
                 {
                     if (String.Compare(source, currentLocation, k, 0, k.Length) == 0)
                     {
-                        switch (keyTokens[k])
+                        switch (keyTokenType[k])
                         {
                             case TokenType.Comment:
                                 int endComment = currentLocation + 3;
@@ -109,8 +157,10 @@ namespace MiniC.Compiler
                                     yield return new Token
                                     {
                                         type = TokenType.Comment,
+                                        form = TokenForm.Comment,
                                         value = source.Substring(currentLocation, endComment - currentLocation + 1),
                                         line = lineCount,
+                                        location = currentLocation,
                                     };
                                 }
                                 else if (k == "//")
@@ -122,8 +172,10 @@ namespace MiniC.Compiler
                                     yield return new Token
                                     {
                                         type = TokenType.Comment,
+                                        form = TokenForm.Comment,
                                         value = source.Substring(currentLocation, endComment - currentLocation),
                                         line = lineCount,
+                                        location = currentLocation,
                                     };
                                 }
                                 currentLocation = endComment + 1;
@@ -138,8 +190,10 @@ namespace MiniC.Compiler
                                 yield return new Token
                                 {
                                     type = TokenType.Macro,
+                                    form = TokenForm.Macro,
                                     value = source.Substring(currentLocation, endMacro - currentLocation),
                                     line = lineCount,
+                                    location = currentLocation,
                                 };
                                 currentLocation = endMacro + 1;
                                 break;
@@ -147,9 +201,11 @@ namespace MiniC.Compiler
                             default:
                                 yield return new Token
                                 {
-                                    type = keyTokens[k],
+                                    type = keyTokenType[k],
+                                    form = keyTokenForm[k],
                                     value = k,
                                     line = lineCount,
+                                    location = currentLocation,
                                 };
                                 currentLocation += k.Length;
                                 break;
@@ -169,9 +225,11 @@ namespace MiniC.Compiler
                             endOfToken++;
                         yield return new Token
                         {
-                            type = TokenType.StringLiteral,
+                            type = TokenType.Literal,
+                            form = TokenForm.StringLiteral,
                             value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
                             line = lineCount,
+                            location = currentLocation,
                         };
                         currentLocation = endOfToken + 1;
                     }
@@ -181,9 +239,11 @@ namespace MiniC.Compiler
                             endOfToken++;
                         yield return new Token
                         {
-                            type = TokenType.CharLiteral,
+                            type = TokenType.Literal,
+                            form = TokenForm.CharLiteral,
                             value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
                             line = lineCount,
+                            location = currentLocation,
                         };
                         currentLocation = endOfToken + 1;
                     }
@@ -191,11 +251,25 @@ namespace MiniC.Compiler
                     {
                         while (endOfToken < len && !(" =<>!&|+-*/()[]{};,".Contains(source[endOfToken])))
                             endOfToken++;
+                        string value = source.Substring(currentLocation, endOfToken - currentLocation);
+                        dynamic number;
+                        bool isFloatValue = false;
+                        try
+                        {
+                            number = Convert.ToInt32(value);
+                        }
+                        catch(FormatException)
+                        {
+                            number = Convert.ToDouble(value);
+                            isFloatValue = true;
+                        }
                         yield return new Token
                         {
-                            type = TokenType.NumberLiteral,
-                            value = source.Substring(currentLocation, endOfToken - currentLocation),
+                            type = TokenType.Literal,
+                            form = isFloatValue ? TokenForm.FloatLiteral : TokenForm.IntegerLiteral,
+                            value = number,
                             line = lineCount,
+                            location = currentLocation,
                         };
                         currentLocation = endOfToken;
                     }
@@ -206,8 +280,10 @@ namespace MiniC.Compiler
                         yield return new Token
                         {
                             type = TokenType.Identifier,
+                            form = TokenForm.Identifier,
                             value = source.Substring(currentLocation, endOfToken - currentLocation),
                             line = lineCount,
+                            location = currentLocation,
                         };
                         currentLocation = endOfToken;
                     }
@@ -215,7 +291,7 @@ namespace MiniC.Compiler
             }
             yield break;
         }
-        private bool isIdentifierOrLiteralEnd(int location)
+        private bool IsIdentifierOrLiteralEnd(int location)
         {
             return " =<>!&|+-*/()[]{};\"\'".Contains(source[location]);
         }

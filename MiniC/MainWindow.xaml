@@ -29,7 +29,7 @@
 			<RichTextBox Name="input" Margin="0" AcceptsReturn="True"/>
 		</Grid>
 		<Grid Grid.Row="1" Grid.Column="1">
-			<RichTextBox Name="display" IsReadOnly="true"  Margin="0" AcceptsReturn="True"/>
+            <RichTextBox Name="display" IsReadOnly="True" IsDocumentEnabled="False" Margin="0" AcceptsReturn="True"/>
 		</Grid>
 	</Grid>
 </Window>

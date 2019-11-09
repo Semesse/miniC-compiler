@@ -64,6 +64,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Compiler\Lexer.cs" />
+    <Compile Include="Compiler\Parser.cs" />
+    <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\Token.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -92,6 +94,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

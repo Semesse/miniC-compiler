@@ -5,31 +5,37 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MiniC"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-	<Grid>
-		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="1*" />
-			<ColumnDefinition Width="1*" />
-		</Grid.ColumnDefinitions>
-		<Grid.RowDefinitions>
-			<RowDefinition Height="20" />
-			<RowDefinition Height="1*" />
-		</Grid.RowDefinitions>
-		<Menu Height="20" Width="Auto" Grid.ColumnSpan="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" VerticalAlignment="Top">
-				<MenuItem Name="File" Header="文件">
-					<MenuItem Header="保存文件"></MenuItem>
-					<MenuItem Header="退出"></MenuItem>
-				</MenuItem>
-				<MenuItem Name="Edit" Header="编译">
-					<MenuItem Header="进行词法分析" Click="Parse"></MenuItem>
-					<MenuItem Header="进行语法分析"></MenuItem>
-				</MenuItem>
-		</Menu>
-		<Grid Grid.Row="1" Grid.Column="0">
-			<RichTextBox Name="input" Margin="0" AcceptsReturn="True"/>
-		</Grid>
-		<Grid Grid.Row="1" Grid.Column="1">
+        Title="MiniC编译器" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="32" />
+        </Grid.RowDefinitions>
+        <Menu Height="20" Width="Auto" Grid.ColumnSpan="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" VerticalAlignment="Top">
+            <MenuItem Name="File" Header="文件">
+                <MenuItem Header="保存文件"></MenuItem>
+                <MenuItem Header="退出"></MenuItem>
+            </MenuItem>
+            <MenuItem Name="Edit" Header="编辑">
+                <MenuItem Header="撤销" Click="Tokenize"></MenuItem>
+                <MenuItem Header="重做" Click="Parse"></MenuItem>
+            </MenuItem>
+            <MenuItem Name="Compile" Header="编译">
+                <MenuItem Header="进行词法分析" Click="Tokenize"></MenuItem>
+                <MenuItem Header="进行语法分析" Click="Parse"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <Grid Grid.Row="1" Grid.Column="0">
+            <RichTextBox Name="input" Margin="0" AcceptsReturn="True"/>
+        </Grid>
+        <Grid Grid.Row="1" Grid.Column="1">
             <RichTextBox Name="display" IsReadOnly="True" IsDocumentEnabled="False" Margin="0" AcceptsReturn="True"/>
-		</Grid>
-	</Grid>
+        </Grid>
+        <Label Grid.Row="2">Powered by Semesse</Label>
+    </Grid>
 </Window>

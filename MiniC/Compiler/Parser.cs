@@ -34,7 +34,7 @@ namespace MiniC.Compiler
             Stack<TokenWithIndex> parenStack = new Stack<TokenWithIndex>();
             for (int i = 0; i < tokens.Count; i++)
             {
-                switch (tokens[i].form)
+                switch (tokens[i].Form)
                 {
                     case TokenForm.LeftParen:
                     case TokenForm.LeftSquare:
@@ -42,28 +42,31 @@ namespace MiniC.Compiler
                         parenStack.Push(new TokenWithIndex(tokens[i], i));
                         break;
                     case TokenForm.RightParen:
-                        if (parenStack.Peek().token.form == TokenForm.RightParen)
+                        if (parenStack.Peek().token.Form == TokenForm.LeftParen)
                         {
                             matchParens.Add(parenStack.Peek().index, i);
+                            parenStack.Pop();
                         }
-                        else throw new ParseException($"Unmatch paren at line {tokens[i].line}");
-                        parenStack.Pop();
+                        else throw new ParseException($"Unmatch paren at line {tokens[i].Line}");
+                        //parenStack.Pop();
                         break;
                     case TokenForm.RightSquare:
-                        if (parenStack.Peek().token.form == TokenForm.RightSquare)
+                        if (parenStack.Peek().token.Form == TokenForm.LeftSquare)
                         {
                             matchParens.Add(parenStack.Peek().index, i);
+                            parenStack.Pop();
                         }
-                        else throw new ParseException($"Unmatch square paren at line {tokens[i].line}");
-                        parenStack.Pop();
+                        else throw new ParseException($"Unmatch square paren at line {tokens[i].Line}");
+                        //parenStack.Pop();
                         break;
                     case TokenForm.RightBracket:
-                        if (parenStack.Peek().token.form == TokenForm.RightBracket)
+                        if (parenStack.Peek().token.Form == TokenForm.LeftBracket)
                         {
                             matchParens.Add(parenStack.Peek().index, i);
+                            parenStack.Pop();
                         }
-                        else throw new ParseException($"Unmatch bracket at line {tokens[i].line}");
-                        parenStack.Pop();
+                        else throw new ParseException($"Unmatch bracket at line {tokens[i].Line}");
+                        //parenStack.Pop();
                         break;
                     default:
                         break;

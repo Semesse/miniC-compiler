@@ -47,6 +47,7 @@ namespace MiniC.Compiler
         And,
         Or,
         Not,
+
         LeftParen,
         RightParen,
         LeftSquare,
@@ -73,13 +74,19 @@ namespace MiniC.Compiler
 
     class Token
     {
-        public TokenType type;
-        public TokenForm form;
-        public dynamic value;
-        public int line;
-        public int location;
+        public TokenType Type;
+        public TokenForm Form;
+        public dynamic Value;
+        public int Line;
+        public int Location;
+        public int Index;
+        static int count = 0;
+        public Token()
+        {
+            Index = count++;
+        }
         public override string ToString() {
-            return $"line {line}\t{type}/{form}\t{value}";
+            return $"line {Line}\t{Type}/{Form}\t{Value}";
         }
     }
 }

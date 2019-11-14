@@ -70,6 +70,7 @@
     <Compile Include="Compiler\Parser.cs" />
     <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\Token.cs" />
+    <Compile Include="Compiler\Util.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

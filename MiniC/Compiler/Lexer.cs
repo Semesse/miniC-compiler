@@ -156,11 +156,11 @@ namespace MiniC.Compiler
                                         endComment++;
                                     yield return new Token
                                     {
-                                        type = TokenType.Comment,
-                                        form = TokenForm.Comment,
-                                        value = source.Substring(currentLocation, endComment - currentLocation + 1),
-                                        line = lineCount,
-                                        location = currentLocation,
+                                        Type = TokenType.Comment,
+                                        Form = TokenForm.Comment,
+                                        Value = source.Substring(currentLocation, endComment - currentLocation + 1),
+                                        Line = lineCount,
+                                        Location = currentLocation,
                                     };
                                 }
                                 else if (k == "//")
@@ -171,11 +171,11 @@ namespace MiniC.Compiler
                                         endComment++;
                                     yield return new Token
                                     {
-                                        type = TokenType.Comment,
-                                        form = TokenForm.Comment,
-                                        value = source.Substring(currentLocation, endComment - currentLocation),
-                                        line = lineCount,
-                                        location = currentLocation,
+                                        Type = TokenType.Comment,
+                                        Form = TokenForm.Comment,
+                                        Value = source.Substring(currentLocation, endComment - currentLocation),
+                                        Line = lineCount,
+                                        Location = currentLocation,
                                     };
                                 }
                                 currentLocation = endComment + 1;
@@ -189,11 +189,11 @@ namespace MiniC.Compiler
                                     endMacro++;
                                 yield return new Token
                                 {
-                                    type = TokenType.Macro,
-                                    form = TokenForm.Macro,
-                                    value = source.Substring(currentLocation, endMacro - currentLocation),
-                                    line = lineCount,
-                                    location = currentLocation,
+                                    Type = TokenType.Macro,
+                                    Form = TokenForm.Macro,
+                                    Value = source.Substring(currentLocation, endMacro - currentLocation),
+                                    Line = lineCount,
+                                    Location = currentLocation,
                                 };
                                 currentLocation = endMacro + 1;
                                 break;
@@ -201,11 +201,11 @@ namespace MiniC.Compiler
                             default:
                                 yield return new Token
                                 {
-                                    type = keyTokenType[k],
-                                    form = keyTokenForm[k],
-                                    value = k,
-                                    line = lineCount,
-                                    location = currentLocation,
+                                    Type = keyTokenType[k],
+                                    Form = keyTokenForm[k],
+                                    Value = k,
+                                    Line = lineCount,
+                                    Location = currentLocation,
                                 };
                                 currentLocation += k.Length;
                                 break;
@@ -225,11 +225,11 @@ namespace MiniC.Compiler
                             endOfToken++;
                         yield return new Token
                         {
-                            type = TokenType.Literal,
-                            form = TokenForm.StringLiteral,
-                            value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
-                            line = lineCount,
-                            location = currentLocation,
+                            Type = TokenType.Literal,
+                            Form = TokenForm.StringLiteral,
+                            Value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
+                            Line = lineCount,
+                            Location = currentLocation,
                         };
                         currentLocation = endOfToken + 1;
                     }
@@ -239,11 +239,11 @@ namespace MiniC.Compiler
                             endOfToken++;
                         yield return new Token
                         {
-                            type = TokenType.Literal,
-                            form = TokenForm.CharLiteral,
-                            value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
-                            line = lineCount,
-                            location = currentLocation,
+                            Type = TokenType.Literal,
+                            Form = TokenForm.CharLiteral,
+                            Value = source.Substring(currentLocation, endOfToken - currentLocation + 1),
+                            Line = lineCount,
+                            Location = currentLocation,
                         };
                         currentLocation = endOfToken + 1;
                     }
@@ -265,11 +265,11 @@ namespace MiniC.Compiler
                         }
                         yield return new Token
                         {
-                            type = TokenType.Literal,
-                            form = isFloatValue ? TokenForm.FloatLiteral : TokenForm.IntegerLiteral,
-                            value = number,
-                            line = lineCount,
-                            location = currentLocation,
+                            Type = TokenType.Literal,
+                            Form = isFloatValue ? TokenForm.FloatLiteral : TokenForm.IntegerLiteral,
+                            Value = number,
+                            Line = lineCount,
+                            Location = currentLocation,
                         };
                         currentLocation = endOfToken;
                     }
@@ -279,11 +279,11 @@ namespace MiniC.Compiler
                             endOfToken++;
                         yield return new Token
                         {
-                            type = TokenType.Identifier,
-                            form = TokenForm.Identifier,
-                            value = source.Substring(currentLocation, endOfToken - currentLocation),
-                            line = lineCount,
-                            location = currentLocation,
+                            Type = TokenType.Identifier,
+                            Form = TokenForm.Identifier,
+                            Value = source.Substring(currentLocation, endOfToken - currentLocation),
+                            Line = lineCount,
+                            Location = currentLocation,
                         };
                         currentLocation = endOfToken;
                     }

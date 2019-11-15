@@ -20,6 +20,7 @@ namespace MiniC.Compiler
         ReturnStatement,
         Expression,
         Identifier,
+        FormalArgument
 
         VariableDeclaration,
         VariableDeclarator,
@@ -31,7 +32,7 @@ namespace MiniC.Compiler
 
         ExpressionStatement,
         AssignmentExpression,
-        CallExpression,
+        FunctionCall,
         BinaryExpression,
         UnaryExpression,
         PrimaryExpression,
@@ -82,12 +83,12 @@ namespace MiniC.Compiler
     class SyntaxNode
     {
         [JsonProperty(Order = -2)]
-        public SyntaxNodeType type;
+        public SyntaxNodeType Type;
     }
     class Program : SyntaxNode
     {
         public List<Statement> Statements;
-        public Program() { type = SyntaxNodeType.Program; Statements = new List<Statement>(); }
+        public Program() { Type = SyntaxNodeType.Program; Statements = new List<Statement>(); }
         static Dictionary<int, int> MatchParens;
         public static int GetMatchParenIndex(List<Token> tokens, int i)
         {
@@ -121,7 +122,7 @@ namespace MiniC.Compiler
     {
         public Statement()
         {
-            type = SyntaxNodeType.Statement;
+            Type = SyntaxNodeType.Statement;
         }
         public static Statement ParseStatement(List<Token> tokens)
         {
@@ -130,6 +131,10 @@ namespace MiniC.Compiler
                 case TokenForm.Int:
                 case TokenForm.Float:
                 case TokenForm.Char:
+                    if (tokens.Count <= 2)
+                    {
+                        return new VariableDeclaration(tokens);
+                    }
                     if (tokens[2].Form == TokenForm.Assignment || tokens[2].Form == TokenForm.Comma)
                     {
                         return new VariableDeclaration(tokens);
@@ -158,9 +163,31 @@ namespace MiniC.Compiler
         public List<Statement> Statements;
         // 防止循环引用无限递归 BlockStatement.Statement[i].Block
         public int BlockId;
-        public BlockStatement()
+        static int BlockCount = 1;
+        public BlockStatement(List<Token> tokens)
         {
-            type = SyntaxNodeType.BlockStatement;
+            Type = SyntaxNodeType.BlockStatement;
+            BlockId = BlockCount++;
+            Statements = new List<Statement>();
+            for (int i = 1; i < tokens.Count - 1;)
+            {
+                for (int j = i; i < tokens.Count - 1; j++)
+                {
+                    if (tokens[j].Form == TokenForm.SemiColon)
+                    {
+                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
+                        i = j + 1;
+                        break;
+                    }
+                    else if (tokens[j].Form == TokenForm.LeftBracket)
+                    {
+                        j = Program.GetMatchParenIndex(tokens, j);
+                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i + 1)));
+                        i = j + 1;
+                        break;
+                    }
+                }
+            }
         }
     }
     class Expression : SyntaxNode
@@ -168,7 +195,7 @@ namespace MiniC.Compiler
         public static Expression EmptyExpresstion = new Expression();
         public Expression()
         {
-            type = SyntaxNodeType.Expression;
+            Type = SyntaxNodeType.Expression;
         }
         public static Expression ParseExpression(List<Token> tokens)
         {
@@ -204,6 +231,10 @@ namespace MiniC.Compiler
                 {"%", 11}
             };
             int i = 0;
+            if (tokens.Count > 1 && tokens[1].Form == TokenForm.Assignment)
+            {
+                return new AssignmentExpression(new Identifier(tokens[0].Value), ParseExpression(tokens.GetRange(2, tokens.Count - 2)));
+            }
             while (i < tokens.Count)
             {
                 if (tokens[i].Type == TokenType.Identifier || tokens[i].Type == TokenType.Literal)
@@ -224,7 +255,7 @@ namespace MiniC.Compiler
                     {
                         while (Operators.Count > 0 && operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
                         {
-                            Operands.Push(new BinaryExpression(Operands.Pop(), tokens[i], Operands.Pop()));
+                            Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
                         }
                         Operators.Push(tokens[i]);
                     }
@@ -242,7 +273,9 @@ namespace MiniC.Compiler
                 }
             }
             while (Operators.Count > 0)
+            {
                 Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
+            }
             if (Operands.Count > 1)
                 throw new ParseException($"行{tokens[0].Line}-{tokens[tokens.Count - 1]}无效的表达式");
             return Operands.Pop();
@@ -265,11 +298,11 @@ namespace MiniC.Compiler
     class Identifier : PrimaryExpression
     {
         public string IdentifierName;
-        public int BlockId;
+        //public int BlockId;
 
         public Identifier(string value)
         {
-            type = SyntaxNodeType.Identifier;
+            Type = SyntaxNodeType.Identifier;
             IdentifierName = value;
         }
     }
@@ -278,7 +311,7 @@ namespace MiniC.Compiler
         public dynamic value;
         public Literal(Token token)
         {
-            type = new Dictionary<TokenForm, SyntaxNodeType>()
+            Type = new Dictionary<TokenForm, SyntaxNodeType>()
             {
                 { TokenForm.StringLiteral, SyntaxNodeType.StringLiteral },
                 { TokenForm.CharLiteral, SyntaxNodeType.CharLiteral },
@@ -289,10 +322,29 @@ namespace MiniC.Compiler
             value = token.Value;
         }
     }
-    class FormalArgument
+    class FormalArgument : SyntaxNode
     {
         public VariableType VariableType;
         public Identifier Identifier;
+        Dictionary<TokenForm, VariableType> VariableTypes = new Dictionary<TokenForm, VariableType>()
+        {
+            {TokenForm.Int, VariableType.Int },
+            {TokenForm.Char, VariableType.Char },
+            {TokenForm.Float, VariableType.Float }
+        };
+        public FormalArgument(List<Token> tokens)
+        {
+            Type = SyntaxNodeType.FormalArgument;
+            try
+            {
+                VariableTypes.TryGetValue(tokens[0].Form, out VariableType);
+                Identifier = new Identifier(tokens[1].Value);
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new ParseException($"行{tokens[0].Line} 非法函数参数");
+            }
+        }
     }
     class VariableDeclaration : Statement
     {
@@ -306,7 +358,7 @@ namespace MiniC.Compiler
         public VariableDeclaration(List<Token> tokens)
         {
             Declarators = new List<VariableDeclarator>();
-            type = SyntaxNodeType.VariableDeclaration;
+            Type = SyntaxNodeType.VariableDeclaration;
             int i = 0;
             VariableType declareType;
             try
@@ -325,8 +377,7 @@ namespace MiniC.Compiler
                     if (tokens[i].Form != TokenForm.Identifier)
                         throw new ParseException($"Invalid variable declaraton at line {tokens[i].Line}");
                     var id = new Identifier(tokens[i].Value);
-                    i++;
-                    if (i == tokens.Count) return;
+                    if (i < tokens.Count - 1) i++;
                     switch (tokens[i].Form)
                     {
                         case TokenForm.Assignment:
@@ -344,8 +395,9 @@ namespace MiniC.Compiler
                             i++;
                             break;
                         case TokenForm.SemiColon:
+                        case TokenForm.Identifier:
                             Declarators.Add(new VariableDeclarator(declareType, id, null));
-                            break;
+                            return;
                         default:
                             throw new ParseException($"Invalid variable declaraton at line {tokens[i].Line}");
                     }
@@ -364,7 +416,7 @@ namespace MiniC.Compiler
         public Expression Init;
         public VariableDeclarator(VariableType t, Identifier id, Expression init)
         {
-            type = SyntaxNodeType.VariableDeclarator;
+            Type = SyntaxNodeType.VariableDeclarator;
             DeclareType = t;
             Identifier = id;
             Init = init;
@@ -372,9 +424,14 @@ namespace MiniC.Compiler
     }
     class FunctionDeclaration : Statement
     {
+        [JsonProperty(Order = 1)]
         public ReturnType ReturnType;
-        Identifier Identifier;
-        List<FormalArgument> ArgumentList;
+        [JsonProperty(Order = 2)]
+        public Identifier Identifier;
+        [JsonProperty(Order = 3)]
+        public List<FormalArgument> ArgumentList;
+        [JsonProperty(Order = 4)]
+        public BlockStatement Block;
         static Dictionary<TokenForm, ReturnType> ReturnTypes = new Dictionary<TokenForm, ReturnType>()
         {
             {TokenForm.Int, ReturnType.Int },
@@ -391,11 +448,21 @@ namespace MiniC.Compiler
         //};
         public FunctionDeclaration(List<Token> tokens)
         {
+            // ReturnType Identifier(ArgumentList)
+            Type = SyntaxNodeType.FunctionDeclaration;
             ReturnType = ReturnTypes[tokens[0].Form];
             if (tokens[0].Form.In(TokenForm.Char, TokenForm.Float, TokenForm.Int, TokenForm.Void))
             {
-                Identifier = new Identifier(tokens[0].Value);
-                // ReturnType Identifier()
+                Identifier = new Identifier(tokens[1].Value);
+                int i = 2, j = Program.GetMatchParenIndex(tokens, i);
+                while (i < j - 1)
+                {
+                    int k = i;
+                    while (tokens[k].Form != TokenForm.Comma) k++;
+                    ArgumentList.Add(new FormalArgument(tokens.GetRange(i, k - i)));
+                    i = k + 1;
+                }
+                Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j - 1));
             }
             else
             {
@@ -411,17 +478,30 @@ namespace MiniC.Compiler
 
         public IfStatement(List<Token> tokens)
         {
+            Type = SyntaxNodeType.IfStatement;
+            int i = 1, j = Program.GetMatchParenIndex(tokens, i);
+            Test = Expression.ParseExpression(tokens.GetRange(i + 1, j - i - 1));
+            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
         }
     }
     class ForStatement : Statement
     {
         public VariableDeclaration Init;
         public Expression Test;
-        public Statement Update;
+        public Expression Update;
         public BlockStatement Block;
 
         public ForStatement(List<Token> tokens)
         {
+            Type = SyntaxNodeType.ForStatement;
+            int i = 1, j = Program.GetMatchParenIndex(tokens, i), k = i;
+            while (tokens[k].Form != TokenForm.SemiColon) k++;
+            Init = new VariableDeclaration(tokens.GetRange(i + 1, k - i - 1));
+            i = k + 1;
+            k = i;
+            while (tokens[k].Form != TokenForm.SemiColon) k++;
+            Test = Expression.ParseExpression(tokens.GetRange(i + 1, k - i - 1));
+            Update = Expression.ParseExpression(tokens.GetRange(k + 1, j - k - 1));
         }
     }
     class WhileStatement : Statement
@@ -430,6 +510,10 @@ namespace MiniC.Compiler
         public BlockStatement Block;
         public WhileStatement(List<Token> tokens)
         {
+            Type = SyntaxNodeType.WhileStatement;
+            int i = 1, j = Program.GetMatchParenIndex(tokens, i);
+            Test = Expression.ParseExpression(tokens.GetRange(i + 1, j - i - 1));
+            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
         }
     }
     class ReturnStatement
@@ -437,6 +521,7 @@ namespace MiniC.Compiler
         public Expression ReturnValue;
         public ReturnStatement(List<Token> tokens)
         {
+            Type = SyntaxNodeType.ReturnStatement;
             ReturnValue = Expression.ParseExpression(tokens.GetRange(1, tokens.Count - 1));
         }
     }
@@ -445,6 +530,7 @@ namespace MiniC.Compiler
         public Expression Expression;
         public ExpressionStatement(List<Token> tokens)
         {
+            Type = SyntaxNodeType.ExpressionStatement;
             Expression = Expression.ParseExpression(tokens);
         }
     }
@@ -454,18 +540,24 @@ namespace MiniC.Compiler
         public Expression Value;
         public AssignmentExpression(List<Token> tokens)
         {
+            Type = SyntaxNodeType.AssignmentExpression;
             Identifier = new Identifier(tokens[0].Value);
             Value = Expression.ParseExpression(tokens.GetRange(1, tokens.Count - 1));
+        }
+        public AssignmentExpression(Identifier id, Expression value)
+        {
+            Identifier = id;
+            Value = value;
         }
     }
     class BinaryExpression : Expression
     {
-        public Expression Left;
         public BinaryOperator Operator;
+        public Expression Left;
         public Expression Right;
         public BinaryExpression(List<Token> tokens)
         {
-            type = SyntaxNodeType.BinaryExpression;
+            Type = SyntaxNodeType.BinaryExpression;
             int operatorIndex = 0;
             while (tokens[operatorIndex].Type != TokenType.Operator) operatorIndex++;
             Left = Expression.ParseExpression(tokens.GetRange(0, operatorIndex - 1));
@@ -488,7 +580,7 @@ namespace MiniC.Compiler
         }
         public BinaryExpression(Expression right, Token op, Expression left)
         {
-            type = SyntaxNodeType.BinaryExpression;
+            Type = SyntaxNodeType.BinaryExpression;
             Left = left;
             Right = right;
             Operator = new Dictionary<TokenForm, BinaryOperator>()
@@ -514,7 +606,7 @@ namespace MiniC.Compiler
         public Expression Expression;
         public UnaryExpression(List<Token> tokens)
         {
-            type = SyntaxNodeType.UnaryExpression;
+            Type = SyntaxNodeType.UnaryExpression;
             Operator = new Dictionary<TokenForm, UnaryOperator>() {
                 { TokenForm.Not, UnaryOperator.Not }
             }[tokens[0].Form];
@@ -522,7 +614,7 @@ namespace MiniC.Compiler
         }
         public UnaryExpression(Token op, Expression expression)
         {
-            type = SyntaxNodeType.UnaryExpression;
+            Type = SyntaxNodeType.UnaryExpression;
             Operator = new Dictionary<TokenForm, UnaryOperator>() {
                 { TokenForm.Not, UnaryOperator.Not }
             }[op.Form];
@@ -535,6 +627,7 @@ namespace MiniC.Compiler
         public List<Expression> Arguments;
         public FunctionCall(List<Token> tokens)
         {
+            Type = SyntaxNodeType.FunctionCall;
             Identifier = new Identifier(tokens[0].Value);
             Arguments = new List<Expression>();
             int i = 2, j = i;

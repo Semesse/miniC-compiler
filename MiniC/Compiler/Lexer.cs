@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MiniC.Compiler
@@ -53,6 +54,7 @@ namespace MiniC.Compiler
             {"null", TokenType.Literal},
 
             {"#", TokenType.Macro},
+            {"define", TokenType.Macro},
         };
 
         public static readonly Dictionary<string, TokenForm> keyTokenForm = new Dictionary<string, TokenForm>()
@@ -100,6 +102,7 @@ namespace MiniC.Compiler
             {"null", TokenForm.Null},
 
             {"#", TokenForm.Macro},
+            {"define", TokenForm.Define},
         };
 
         string source;
@@ -116,6 +119,7 @@ namespace MiniC.Compiler
             {
                 tokens.Add(token);
             }
+            Token.Clear();
             return tokens;
         }
 
@@ -258,7 +262,7 @@ namespace MiniC.Compiler
                         {
                             number = Convert.ToInt32(value);
                         }
-                        catch(FormatException)
+                        catch (FormatException)
                         {
                             number = Convert.ToDouble(value);
                             isFloatValue = true;
@@ -290,6 +294,12 @@ namespace MiniC.Compiler
                 }
             }
             yield break;
+        }
+        public static List<Token> TokenizeMacro(Token m)
+        {
+            string macro = m.Value.Substring(1);
+            Lexer l = new Lexer(macro);
+            return l.Tokenize();
         }
         private bool IsIdentifierOrLiteralEnd(int location)
         {

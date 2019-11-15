@@ -61,10 +61,7 @@ namespace MiniC
         }
         private void Parse()
         {
-            if(tokens == null)
-            {
-                Tokenize();
-            }
+            Tokenize();
             Parser p = new Parser(tokens);
             try
             {

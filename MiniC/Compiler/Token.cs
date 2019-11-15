@@ -61,6 +61,7 @@ namespace MiniC.Compiler
         Null,
 
         Macro,
+        Define,
         Comment,
 
         StringLiteral,
@@ -84,6 +85,20 @@ namespace MiniC.Compiler
         public Token()
         {
             Index = count++;
+        }
+
+        public Token(TokenType type, TokenForm form, dynamic value, int line, int location)
+        {
+            Type = type;
+            Form = form;
+            Value = value;
+            Line = line;
+            Location = location;
+        }
+
+        public static void Clear()
+        {
+            count = 0;
         }
         public override string ToString() {
             return $"line {Line}\t{Type}/{Form}\t{Value}";

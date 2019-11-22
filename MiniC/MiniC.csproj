@@ -66,8 +66,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Compiler\Assembly.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="Compiler\Parser.cs" />
+    <Compile Include="Compiler\Semantic.cs" />
     <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\Token.cs" />
     <Compile Include="Compiler\Util.cs" />

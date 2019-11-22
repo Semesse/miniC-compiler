@@ -31,10 +31,16 @@
             </MenuItem>
         </Menu>
         <Grid Grid.Row="1" Grid.Column="0">
-            <RichTextBox Name="input" Margin="0" AcceptsReturn="True"/>
+            <RichTextBox Name="input" Margin="0" AcceptsReturn="True" FontFamily="Fira Code Retina" Background="#FFFDF6E3" KeyDown="Highlight" PreviewKeyDown="Highlight" SelectionBrush="#ff93a1a1" SelectionOpacity="0.15">
+                <RichTextBox.Resources>
+                    <Style TargetType="{x:Type Paragraph}">
+                        <Setter Property="Margin" Value="0"/>
+                    </Style>
+                </RichTextBox.Resources>
+            </RichTextBox>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="1">
-            <RichTextBox Name="display" IsReadOnly="True" IsDocumentEnabled="False" Margin="0" AcceptsReturn="True"/>
+            <RichTextBox Name="display" IsReadOnly="True" IsDocumentEnabled="False" Margin="0" AcceptsReturn="True" Background="#FFFDF6E3"/>
         </Grid>
         <Label Grid.Row="2">Powered by Semesse</Label>
     </Grid>

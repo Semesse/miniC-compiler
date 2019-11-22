@@ -107,11 +107,17 @@ namespace MiniC.Compiler
 
         string source;
         List<Token> tokens;
+
+        public Lexer() { }
         public Lexer(string source)
         {
             this.source = source;
         }
 
+        public void SetSource(string source)
+        {
+            this.source = source;
+        }
         public List<Token> Tokenize()
         {
             tokens = new List<Token>();
@@ -183,8 +189,8 @@ namespace MiniC.Compiler
                                     };
                                 }
                                 currentLocation = endComment + 1;
+                                flag = true;
                                 break;
-
                             case TokenType.Macro:
                                 int endMacro = currentLocation + 1;
                                 while (endMacro < len
@@ -200,23 +206,27 @@ namespace MiniC.Compiler
                                     Location = currentLocation,
                                 };
                                 currentLocation = endMacro + 1;
+                                flag = true;
                                 break;
 
                             default:
-                                yield return new Token
+                                if (keyTokenType[k] != TokenType.Keyword || !char.IsLetterOrDigit(source[currentLocation + k.Length]))
                                 {
-                                    Type = keyTokenType[k],
-                                    Form = keyTokenForm[k],
-                                    Value = k,
-                                    Line = lineCount,
-                                    Location = currentLocation,
-                                };
-                                currentLocation += k.Length;
+                                    yield return new Token
+                                    {
+                                        Type = keyTokenType[k],
+                                        Form = keyTokenForm[k],
+                                        Value = k,
+                                        Line = lineCount,
+                                        Location = currentLocation,
+                                    };
+                                    currentLocation += k.Length;
+                                    flag = true;
+                                }
                                 break;
                         }
-                        flag = true;
+                        if(flag)break;
                     }
-
                 }
 
                 //未找到则视为字面量

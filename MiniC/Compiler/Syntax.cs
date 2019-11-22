@@ -20,7 +20,7 @@ namespace MiniC.Compiler
         ReturnStatement,
         Expression,
         Identifier,
-        FormalArgument
+        FormalArgument,
 
         VariableDeclaration,
         VariableDeclarator,
@@ -449,6 +449,7 @@ namespace MiniC.Compiler
         public FunctionDeclaration(List<Token> tokens)
         {
             // ReturnType Identifier(ArgumentList)
+            ArgumentList = new List<FormalArgument>();
             Type = SyntaxNodeType.FunctionDeclaration;
             ReturnType = ReturnTypes[tokens[0].Form];
             if (tokens[0].Form.In(TokenForm.Char, TokenForm.Float, TokenForm.Int, TokenForm.Void))
@@ -516,7 +517,7 @@ namespace MiniC.Compiler
             Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
         }
     }
-    class ReturnStatement
+    class ReturnStatement : Statement
     {
         public Expression ReturnValue;
         public ReturnStatement(List<Token> tokens)

@@ -53,6 +53,7 @@ namespace MiniC.Compiler
             {"false", TokenType.Literal},
             {"null", TokenType.Literal},
 
+            {"#define", TokenType.Macro },
             {"#", TokenType.Macro},
             {"define", TokenType.Macro},
         };
@@ -192,21 +193,24 @@ namespace MiniC.Compiler
                                 flag = true;
                                 break;
                             case TokenType.Macro:
-                                int endMacro = currentLocation + 1;
-                                while (endMacro < len
-                                    && source[endMacro] != '\r'
-                                    && source[endMacro] != '\n')
-                                    endMacro++;
-                                yield return new Token
+                                if(source[currentLocation] == '#')
                                 {
-                                    Type = TokenType.Macro,
-                                    Form = TokenForm.Macro,
-                                    Value = source.Substring(currentLocation, endMacro - currentLocation),
-                                    Line = lineCount,
-                                    Location = currentLocation,
-                                };
-                                currentLocation = endMacro + 1;
-                                flag = true;
+                                    int endMacro = currentLocation + 1;
+                                    while (endMacro < len
+                                        && source[endMacro] != '\r'
+                                        && source[endMacro] != '\n')
+                                        endMacro++;
+                                    yield return new Token
+                                    {
+                                        Type = TokenType.Macro,
+                                        Form = TokenForm.Macro,
+                                        Value = source.Substring(currentLocation, endMacro - currentLocation),
+                                        Line = lineCount,
+                                        Location = currentLocation,
+                                    };
+                                    currentLocation = endMacro + 1;
+                                    flag = true;
+                                }
                                 break;
 
                             default:

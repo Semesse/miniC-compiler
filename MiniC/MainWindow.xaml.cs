@@ -14,6 +14,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using MiniC.Compiler;
 using Newtonsoft.Json;
+using System.Linq;
+using System.IO;
 
 namespace MiniC
 {
@@ -32,6 +34,7 @@ namespace MiniC
         {
             InitializeComponent();
             lexer = new Lexer();
+            DataObject.AddPastingHandler(input, Highlight);
             //SyntaxNode a = new Identifier("haha");
             //SetText(display, JsonConvert.SerializeObject(a, Formatting.Indented));
         }
@@ -45,11 +48,13 @@ namespace MiniC
             int i = 0;
             startPointer = null;
             endPointer = null;
+            //while (start.GetPointerContext(LogicalDirection.Forward) != TextPointerContext.Text)
+            //    start = start.GetNextContextPosition(LogicalDirection.Forward);
             while (i < startOffset && start != null)
             {
                 if (start.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
                 {
-                    string textrun = start.GetTextInRun(LogicalDirection.Forward);
+                    //string textrun = start.GetTextInRun(LogicalDirection.Forward);
                     //start = start.GetNextContextPosition(LogicalDirection.Forward);
                     //i += start.GetTextInRun(LogicalDirection.Forward).Length;
                     start = start.GetNextInsertionPosition(LogicalDirection.Forward);
@@ -127,70 +132,151 @@ namespace MiniC
             }
         }
 
-        private void Highlight(object sender, TextChangedEventArgs e)
+        private void Highlight()
         {
+            lexer.SetSource(GetText(input));
+            tokens = lexer.Tokenize();
+            TextPointer pointer = input.Document.ContentStart, start, end;
+            int lastEnd = 0;
+            foreach (Token token in tokens)
+            {
+                if (token.Type == TokenType.Keyword)
+                {
+                    int tmp = token.Location - lastEnd;
+                    GetPointer(pointer,
+                        tmp, tmp + token.Value.Length,
+                        out start, out end);
+                    //input.Selection.Select(start, end);
+                    //input.SelectionBrush = keywordBrush;
+                    TextRange range = new TextRange(start, end);
+                    SetColor(range, KeywordBrush);
+                    pointer = end;
+                    lastEnd = token.Location + token.Value.Length - 1;
+                    //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                    //input.SelectionBrush = Brushes.Black;
+                }
+                else if (token.Type == TokenType.Comment || token.Type == TokenType.Macro)
+                {
+                    int tmp = token.Location - lastEnd;
+                    GetPointer(pointer,
+                        tmp, tmp + token.Value.Length,
+                        out start, out end);
+                    //input.Selection.Select(start, end);
+                    //input.SelectionBrush = keywordBrush;
+                    SetColor(new TextRange(start, end), CommentBrush);
+                    pointer = end;
+                    lastEnd = token.Location + token.Value.Length;
+                    //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                    //input.SelectionBrush = Brushes.Black;
+                }
+                else if (token.Form.In(TokenForm.StringLiteral, TokenForm.CharLiteral, TokenForm.BooleanLiteral))
+                {
+                    int tmp = token.Location - lastEnd;
+                    GetPointer(pointer,
+                        tmp, tmp + token.Value.Length,
+                        out start, out end);
+                    //input.Selection.Select(start, end);
+                    //input.SelectionBrush = keywordBrush;
+                    SetColor(new TextRange(start, end), LiteralBrush);
+                    pointer = end;
+                    lastEnd = token.Location + token.Value.Length - 1;
+                    //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                    //input.SelectionBrush = Brushes.Black;
+                }
+            }
+        }
+        private void Highlight(object sender, DataObjectEventArgs e)
+        {
+            //Task.Delay(1000).ContinueWith(_ =>
+            //{
+            //    PresentationSource source = null;
+            //    foreach (PresentationSource s in PresentationSource.CurrentSources)
+            //    {
+            //        source = s;
+            //        break;
+            //    }
+            //    KeyEventArgs k = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, Key.Space);
+            //    k.RoutedEvent = Keyboard.KeyDownEvent;
+            //    this.Highlight(this, k);
+            //});
+            Task.Delay(200).ContinueWith(_ =>
+                {
+                    this.Dispatcher.Invoke(Highlight);
+                    //Highlight();
+                }
+            );
         }
 
         private void Highlight(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Space || (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control))
+            if (e.Key == Key.Space)
             {
-
-                lexer.SetSource(GetText(input));
-                tokens = lexer.Tokenize();
-                TextPointer pointer = input.Document.ContentStart, start, end;
-                int lastEnd = 0;
-                foreach (Token token in tokens)
-                {
-                    if (token.Type == TokenType.Keyword)
-                    {
-                        int tmp = token.Location - lastEnd;
-                        GetPointer(pointer,
-                            tmp, tmp + token.Value.Length,
-                            out start, out end);
-                        //input.Selection.Select(start, end);
-                        //input.SelectionBrush = keywordBrush;
-                        SetColor(new TextRange(start, end), KeywordBrush);
-                        pointer = end;
-                        lastEnd = token.Location + token.Value.Length - 1;
-                        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                        //input.SelectionBrush = Brushes.Black;
-                    }
-                    else if (token.Type == TokenType.Comment || token.Type == TokenType.Macro)
-                    {
-                        int tmp = token.Location - lastEnd;
-                        GetPointer(pointer,
-                            tmp, tmp + token.Value.Length,
-                            out start, out end);
-                        //input.Selection.Select(start, end);
-                        //input.SelectionBrush = keywordBrush;
-                        SetColor(new TextRange(start, end), CommentBrush);
-                        pointer = end;
-                        lastEnd = token.Location + token.Value.Length;
-                        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                        //input.SelectionBrush = Brushes.Black;
-                    }
-                    else if (token.Form.In(TokenForm.StringLiteral, TokenForm.CharLiteral, TokenForm.BooleanLiteral))
-                    {
-                        int tmp = token.Location - lastEnd;
-                        GetPointer(pointer,
-                            tmp, tmp + token.Value.Length,
-                            out start, out end);
-                        //input.Selection.Select(start, end);
-                        //input.SelectionBrush = keywordBrush;
-                        SetColor(new TextRange(start, end), LiteralBrush);
-                        pointer = end;
-                        lastEnd = token.Location + token.Value.Length - 1;
-                        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                        //input.SelectionBrush = Brushes.Black;
-                    }
-                }
+                Highlight();
+                //lexer.SetSource(GetText(input));
+                //tokens = lexer.Tokenize();
+                //TextPointer pointer = input.Document.ContentStart, start, end;
+                //int lastEnd = 0;
+                //foreach (Token token in tokens)
+                //{
+                //    if (token.Type == TokenType.Keyword)
+                //    {
+                //        int tmp = token.Location - lastEnd;
+                //        GetPointer(pointer,
+                //            tmp, tmp + token.Value.Length,
+                //            out start, out end);
+                //        //input.Selection.Select(start, end);
+                //        //input.SelectionBrush = keywordBrush;
+                //        SetColor(new TextRange(start, end), KeywordBrush);
+                //        pointer = end;
+                //        lastEnd = token.Location + token.Value.Length - 1;
+                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                //        //input.SelectionBrush = Brushes.Black;
+                //    }
+                //    else if (token.Type == TokenType.Comment || token.Type == TokenType.Macro)
+                //    {
+                //        int tmp = token.Location - lastEnd;
+                //        GetPointer(pointer,
+                //            tmp, tmp + token.Value.Length,
+                //            out start, out end);
+                //        //input.Selection.Select(start, end);
+                //        //input.SelectionBrush = keywordBrush;
+                //        SetColor(new TextRange(start, end), CommentBrush);
+                //        pointer = end;
+                //        lastEnd = token.Location + token.Value.Length;
+                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                //        //input.SelectionBrush = Brushes.Black;
+                //    }
+                //    else if (token.Form.In(TokenForm.StringLiteral, TokenForm.CharLiteral, TokenForm.BooleanLiteral))
+                //    {
+                //        int tmp = token.Location - lastEnd;
+                //        GetPointer(pointer,
+                //            tmp, tmp + token.Value.Length,
+                //            out start, out end);
+                //        //input.Selection.Select(start, end);
+                //        //input.SelectionBrush = keywordBrush;
+                //        SetColor(new TextRange(start, end), LiteralBrush);
+                //        pointer = end;
+                //        lastEnd = token.Location + token.Value.Length - 1;
+                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
+                //        //input.SelectionBrush = Brushes.Black;
+                //    }
+                //}
             }
             else if (e.Key == Key.Tab)
             {
                 input.AppendText("\t");
                 e.Handled = true;
             }
+        }
+
+        private void Save(object sender, RoutedEventArgs e)
+        {
+            TextRange range;
+            FileStream fStream;
+            range = new TextRange(input.Document.ContentStart, input.Document.ContentEnd);
+            fStream = new FileStream("test.minic", FileMode.Create);
+            range.Save(fStream, DataFormats.XamlPackage);
+            fStream.Close();
         }
     }
 }

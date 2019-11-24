@@ -20,27 +20,28 @@ namespace MiniC.Compiler
         public Parser(List<Token> tokens)
         {
             this.tokens = tokens.Where(token => token.Type != TokenType.Comment).ToList();
+        }
+        public SyntaxTree Parse()
+        {
+            ProcessMacro();
             for(int i = 0; i < this.tokens.Count; i++)
             {
                 this.tokens[i].Index = i;
             }
-        }
-        public SyntaxTree Parse()
-        {
-            //ProcessMacro();
             Dictionary<int, int> matchParens = ParseParens();
             SyntaxTree tree = new SyntaxTree(tokens, matchParens);
             return tree;
         }
         void ProcessMacro()
         {
-            Dictionary<string, Token> Replace = new Dictionary<string, Token>();
-            foreach (Token token in tokens)
+            Dictionary<dynamic, Token> Replace = new Dictionary<dynamic, Token>();
+            for(int i = 0; i < tokens.Count; i++)
             {
-                if (token.Type == TokenType.Macro)
+                if (tokens[i].Type == TokenType.Macro)
                 {
-                    List<Token> tokens = Lexer.TokenizeMacro(token);
-                    Replace.Add(tokens[0].Value, tokens[1]);
+                    List<Token> t = Lexer.TokenizeMacro(tokens[i]);
+                    Replace.Add(t[1], t[2]);
+                    tokens.RemoveAt(i);
                 }
             }
             for (int i = 0; i < tokens.Count; i++)

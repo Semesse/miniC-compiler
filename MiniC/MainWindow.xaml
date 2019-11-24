@@ -18,7 +18,7 @@
         </Grid.RowDefinitions>
         <Menu Height="20" Width="Auto" Grid.ColumnSpan="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" VerticalAlignment="Top">
             <MenuItem Name="File" Header="文件">
-                <MenuItem Header="保存文件"></MenuItem>
+                <MenuItem Header="保存文件" Click="Save"></MenuItem>
                 <MenuItem Header="退出"></MenuItem>
             </MenuItem>
             <MenuItem Name="Edit" Header="编辑">

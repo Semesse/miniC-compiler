@@ -99,20 +99,29 @@ namespace MiniC.Compiler
             MatchParens = matchParens;
             for (int i = 0; i < tokens.Count;)
             {
-                for (int j = i; i < tokens.Count; j++)
+                if (tokens[i].Form.In(TokenForm.If, TokenForm.For, TokenForm.While))
                 {
-                    if (tokens[j].Form == TokenForm.SemiColon)
+                    int rightParen = Program.GetMatchParenIndex(tokens, i + 1);
+                    int rightBracket = Program.GetMatchParenIndex(tokens, rightParen + 1);
+                    Statements.Add(Statement.ParseStatement(tokens.GetRange(i, rightBracket - i)));
+                }
+                else
+                {
+                    for (int j = i; i < tokens.Count - 1; j++)
                     {
-                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
-                        i = j + 1;
-                        break;
-                    }
-                    else if (tokens[j].Form == TokenForm.LeftBracket)
-                    {
-                        j = matchParens[j];
-                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i + 1)));
-                        i = j + 1;
-                        break;
+                        if (tokens[j].Form == TokenForm.SemiColon)
+                        {
+                            Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
+                            i = j + 1;
+                            break;
+                        }
+                        else if (tokens[j].Form == TokenForm.LeftBracket)
+                        {
+                            j = Program.GetMatchParenIndex(tokens, j);
+                            Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i + 1)));
+                            i = j + 1;
+                            break;
+                        }
                     }
                 }
             }
@@ -171,20 +180,30 @@ namespace MiniC.Compiler
             Statements = new List<Statement>();
             for (int i = 1; i < tokens.Count - 1;)
             {
-                for (int j = i; i < tokens.Count - 1; j++)
+                if(tokens[i].Form.In(TokenForm.If, TokenForm.For, TokenForm.While))
                 {
-                    if (tokens[j].Form == TokenForm.SemiColon)
+                    int rightParen = Program.GetMatchParenIndex(tokens, i + 1);
+                    int rightBracket = Program.GetMatchParenIndex(tokens, rightParen + 1);
+                    Statements.Add(Statement.ParseStatement(tokens.GetRange(i, rightBracket - i)));
+                    i = rightBracket + 1;
+                }
+                else
+                {
+                    for (int j = i; i < tokens.Count - 1; j++)
                     {
-                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
-                        i = j + 1;
-                        break;
-                    }
-                    else if (tokens[j].Form == TokenForm.LeftBracket)
-                    {
-                        j = Program.GetMatchParenIndex(tokens, j);
-                        Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i + 1)));
-                        i = j + 1;
-                        break;
+                        if (tokens[j].Form == TokenForm.SemiColon)
+                        {
+                            Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
+                            i = j + 1;
+                            break;
+                        }
+                        else if (tokens[j].Form == TokenForm.LeftBracket)
+                        {
+                            j = Program.GetMatchParenIndex(tokens, j);
+                            Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i + 1)));
+                            i = j + 1;
+                            break;
+                        }
                     }
                 }
             }
@@ -487,7 +506,7 @@ namespace MiniC.Compiler
     }
     class ForStatement : Statement
     {
-        public VariableDeclaration Init;
+        public Statement Init;
         public Expression Test;
         public Expression Update;
         public BlockStatement Block;
@@ -497,11 +516,11 @@ namespace MiniC.Compiler
             Type = SyntaxNodeType.ForStatement;
             int i = 1, j = Program.GetMatchParenIndex(tokens, i), k = i;
             while (tokens[k].Form != TokenForm.SemiColon) k++;
-            Init = new VariableDeclaration(tokens.GetRange(i + 1, k - i - 1));
+            Init = Statement.ParseStatement(tokens.GetRange(i + 1, k - i - 1));
             i = k + 1;
             k = i;
             while (tokens[k].Form != TokenForm.SemiColon) k++;
-            Test = Expression.ParseExpression(tokens.GetRange(i + 1, k - i - 1));
+            Test = Expression.ParseExpression(tokens.GetRange(i, k - i));
             Update = Expression.ParseExpression(tokens.GetRange(k + 1, j - k - 1));
         }
     }

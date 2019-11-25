@@ -78,14 +78,16 @@ namespace MiniC.Compiler
     [JsonConverter(typeof(StringEnumConverter))]
     enum UnaryOperator
     {
-        Not
+        Not,
+        Address,
+        Dereference
     }
     class SyntaxNode
     {
         [JsonProperty(Order = -2)]
         public SyntaxNodeType Type;
     }
-    class Program : SyntaxNode
+    partial class Program : SyntaxNode
     {
         public List<Statement> Statements;
         public Program() { Type = SyntaxNodeType.Program; Statements = new List<Statement>(); }
@@ -127,7 +129,7 @@ namespace MiniC.Compiler
             }
         }
     }
-    class Statement : SyntaxNode
+    partial class Statement : SyntaxNode
     {
         public Statement()
         {
@@ -167,7 +169,7 @@ namespace MiniC.Compiler
             return null;
         }
     }
-    class BlockStatement : Statement
+    partial class BlockStatement : Statement
     {
         public List<Statement> Statements;
         // 防止循环引用无限递归 BlockStatement.Statement[i].Block
@@ -209,7 +211,7 @@ namespace MiniC.Compiler
             }
         }
     }
-    class Expression : SyntaxNode
+    partial class Expression : SyntaxNode
     {
         public static Expression EmptyExpresstion = new Expression();
         public Expression()
@@ -300,7 +302,7 @@ namespace MiniC.Compiler
             return Operands.Pop();
         }
     }
-    class PrimaryExpression : Expression
+    partial class PrimaryExpression : Expression
     {
         public static PrimaryExpression ParsePrimaryExpression(List<Token> tokens)
         {
@@ -314,7 +316,7 @@ namespace MiniC.Compiler
             }
         }
     }
-    class Identifier : PrimaryExpression
+    partial class Identifier : PrimaryExpression
     {
         public string IdentifierName;
         //public int BlockId;
@@ -325,7 +327,7 @@ namespace MiniC.Compiler
             IdentifierName = value;
         }
     }
-    class Literal : PrimaryExpression
+    partial class Literal : PrimaryExpression
     {
         public dynamic value;
         public Literal(Token token)
@@ -341,7 +343,7 @@ namespace MiniC.Compiler
             value = token.Value;
         }
     }
-    class FormalArgument : SyntaxNode
+    partial class FormalArgument : SyntaxNode
     {
         public VariableType VariableType;
         public Identifier Identifier;
@@ -365,7 +367,7 @@ namespace MiniC.Compiler
             }
         }
     }
-    class VariableDeclaration : Statement
+    partial class VariableDeclaration : Statement
     {
         public List<VariableDeclarator> Declarators;
         Dictionary<TokenForm, VariableType> VariableTypes = new Dictionary<TokenForm, VariableType>()
@@ -428,7 +430,7 @@ namespace MiniC.Compiler
             }
         }
     }
-    class VariableDeclarator : SyntaxNode
+    partial class VariableDeclarator : SyntaxNode
     {
         public VariableType DeclareType;
         public Identifier Identifier;
@@ -441,7 +443,7 @@ namespace MiniC.Compiler
             Init = init;
         }
     }
-    class FunctionDeclaration : Statement
+    partial class FunctionDeclaration : Statement
     {
         [JsonProperty(Order = 1)]
         public ReturnType ReturnType;
@@ -491,7 +493,7 @@ namespace MiniC.Compiler
 
         }
     }
-    class IfStatement : Statement
+    partial class IfStatement : Statement
     {
         public Expression Test;
         public BlockStatement Block;
@@ -504,7 +506,7 @@ namespace MiniC.Compiler
             Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
         }
     }
-    class ForStatement : Statement
+    partial class ForStatement : Statement
     {
         public Statement Init;
         public Expression Test;
@@ -524,7 +526,7 @@ namespace MiniC.Compiler
             Update = Expression.ParseExpression(tokens.GetRange(k + 1, j - k - 1));
         }
     }
-    class WhileStatement : Statement
+    partial class WhileStatement : Statement
     {
         public Expression Test;
         public BlockStatement Block;
@@ -536,7 +538,7 @@ namespace MiniC.Compiler
             Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
         }
     }
-    class ReturnStatement : Statement
+    partial class ReturnStatement : Statement
     {
         public Expression ReturnValue;
         public ReturnStatement(List<Token> tokens)
@@ -545,7 +547,7 @@ namespace MiniC.Compiler
             ReturnValue = Expression.ParseExpression(tokens.GetRange(1, tokens.Count - 1));
         }
     }
-    class ExpressionStatement : Statement
+    partial class ExpressionStatement : Statement
     {
         public Expression Expression;
         public ExpressionStatement(List<Token> tokens)
@@ -554,7 +556,7 @@ namespace MiniC.Compiler
             Expression = Expression.ParseExpression(tokens);
         }
     }
-    class AssignmentExpression : Expression
+    partial class AssignmentExpression : Expression
     {
         public Identifier Identifier;
         public Expression Value;
@@ -570,7 +572,7 @@ namespace MiniC.Compiler
             Value = value;
         }
     }
-    class BinaryExpression : Expression
+    partial class BinaryExpression : Expression
     {
         public BinaryOperator Operator;
         public Expression Left;
@@ -620,7 +622,7 @@ namespace MiniC.Compiler
             }[op.Form];
         }
     }
-    class UnaryExpression : Expression
+    partial class UnaryExpression : Expression
     {
         public UnaryOperator Operator;
         public Expression Expression;
@@ -628,7 +630,8 @@ namespace MiniC.Compiler
         {
             Type = SyntaxNodeType.UnaryExpression;
             Operator = new Dictionary<TokenForm, UnaryOperator>() {
-                { TokenForm.Not, UnaryOperator.Not }
+                { TokenForm.Not, UnaryOperator.Not },
+                { TokenForm.Address, UnaryOperator.Address }
             }[tokens[0].Form];
             Expression = Expression.ParseExpression(tokens.GetRange(1, tokens.Count - 1));
         }
@@ -636,12 +639,17 @@ namespace MiniC.Compiler
         {
             Type = SyntaxNodeType.UnaryExpression;
             Operator = new Dictionary<TokenForm, UnaryOperator>() {
-                { TokenForm.Not, UnaryOperator.Not }
+                { TokenForm.Not, UnaryOperator.Not },
+                { TokenForm.Address, UnaryOperator.Address }
             }[op.Form];
+            if (op.Form == TokenForm.Address && expression.Type != SyntaxNodeType.Identifier)
+            {
+                throw new ParseException($"rvalue cannot do & Operation at line {op.Line}");
+            }
             Expression = expression;
         }
     }
-    class FunctionCall : PrimaryExpression
+    partial class FunctionCall : PrimaryExpression
     {
         public Identifier Identifier;
         public List<Expression> Arguments;

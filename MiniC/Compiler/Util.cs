@@ -24,5 +24,9 @@ namespace MiniC.Compiler
         {
             return !values.Contains(val);
         }
+        public static T As<T>(this object o) where T : SyntaxNode
+        {
+            return (T)o;
+        }
     }
 }

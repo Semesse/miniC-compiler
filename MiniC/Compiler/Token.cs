@@ -47,6 +47,8 @@ namespace MiniC.Compiler
         And,
         Or,
         Not,
+        Address,
+        Dereference,
 
         LeftParen,
         RightParen,

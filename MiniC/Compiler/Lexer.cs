@@ -39,6 +39,7 @@ namespace MiniC.Compiler
             {"&&", TokenType.Operator},
             {"||", TokenType.Operator},
             {"!", TokenType.Operator},
+            {"&", TokenType.Operator},
 
             {"(", TokenType.Seperator},
             {")", TokenType.Seperator},
@@ -88,6 +89,7 @@ namespace MiniC.Compiler
             {"&&", TokenForm.And},
             {"||", TokenForm.Or},
             {"!", TokenForm.Not},
+            {"&", TokenForm.Address},
 
             {"(", TokenForm.LeftParen},
             {")", TokenForm.RightParen},

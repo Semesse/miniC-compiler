@@ -28,6 +28,7 @@
             <MenuItem Name="Compile" Header="编译">
                 <MenuItem Header="进行词法分析" Click="Tokenize"></MenuItem>
                 <MenuItem Header="进行语法分析" Click="Parse"></MenuItem>
+                <MenuItem Header="生成汇编" Click="GenerateASM"></MenuItem>
             </MenuItem>
         </Menu>
         <Grid Grid.Row="1" Grid.Column="0">

@@ -72,107 +72,28 @@ namespace MiniC.Compiler
             return $"${Label.LabelName}";
         }
     }
-    class Instruction
+    class ASMCode
+    {
+
+    }
+    class Instruction : ASMCode
     {
         Operator Operator;
         IOperand Src;
         IOperand Dst;
     }
-    class AssembleUtil
-    {
-        public static UInt32 FloatToUint(float a)
-        {
-            return Convert.ToUInt32(a);
-        }
-    }
     class AssemblyGenerator
     {
         SyntaxTree tree;
-        public List<Instruction> instructions;
+        public List<Instruction> Instructions;
         public AssemblyGenerator(SyntaxTree tree)
         {
             this.tree = tree;
+            Instructions = new List<Instruction>();
         }
-        void Visit(SyntaxNode current, int blockId)
+        public void Generate()
         {
-            switch (current.Type)
-            {
-                case SyntaxNodeType.Program:
-                    Program Program = current.As<Program>();
-                    break;
-                case SyntaxNodeType.Statement:
-                    Statement Statement = current.As<Statement>();
-                    break;
-                case SyntaxNodeType.BlockStatement:
-                    BlockStatement BlockStatement = current.As<BlockStatement>();
-                    break;
-                case SyntaxNodeType.Expression:
-                    Expression Expression = current.As<Expression>();
-                    break;
-                case SyntaxNodeType.PrimaryExpression:
-                    PrimaryExpression PrimaryExpression = current.As<PrimaryExpression>();
-                    break;
-                case SyntaxNodeType.Identifier:
-                    Identifier Identifier = current.As<Identifier>();
-                    break;
-                case SyntaxNodeType.BooleanLiteral:
-                    Literal Literal = current.As<Literal>();
-                    break;
-                //case SyntaxNodeType.CharLiteral:
-                //    Literal Literal = current.As<Literal>();
-                //    break;
-                //case SyntaxNodeType.FloatLiteral:
-                //    Literal Literal = current.As<Literal>();
-                //    break;
-                //case SyntaxNodeType.IntegerLiteral:
-                //    Literal Literal = current.As<Literal>();
-                //    break;
-                //case SyntaxNodeType.NullLiteral:
-                //    Literal Literal = current.As<Literal>();
-                //    break;
-                //case SyntaxNodeType.StringLiteral:
-                //    Literal Literal = current.As<Literal>();
-                //    break;
-                case SyntaxNodeType.FunctionDeclaration:
-                    FunctionDeclaration FunctionDeclaration = current.As<FunctionDeclaration>();
-                    break;
-                case SyntaxNodeType.FormalArgument:
-                    FormalArgument FormalArgument = current.As<FormalArgument>();
-                    break;
-                case SyntaxNodeType.VariableDeclaration:
-                    VariableDeclaration VariableDeclaration = current.As<VariableDeclaration>();
-                    break;
-                case SyntaxNodeType.VariableDeclarator:
-                    VariableDeclarator VariableDeclarator = current.As<VariableDeclarator>();
-                    break;
-                case SyntaxNodeType.IfStatement:
-                    IfStatement IfStatement = current.As<IfStatement>();
-                    break;
-                case SyntaxNodeType.ForStatement:
-                    ForStatement ForStatement = current.As<ForStatement>();
-                    break;
-                case SyntaxNodeType.WhileStatement:
-                    WhileStatement WhileStatement = current.As<WhileStatement>();
-                    break;
-                case SyntaxNodeType.ReturnStatement:
-                    ReturnStatement ReturnStatement = current.As<ReturnStatement>();
-                    break;
-                case SyntaxNodeType.ExpressionStatement:
-                    ExpressionStatement ExpressionStatement = current.As<ExpressionStatement>();
-                    break;
-                case SyntaxNodeType.AssignmentExpression:
-                    AssignmentExpression AssignmentExpression = current.As<AssignmentExpression>();
-                    break;
-                case SyntaxNodeType.BinaryExpression:
-                    BinaryExpression BinaryExpression = current.As<BinaryExpression>();
-                    break;
-                case SyntaxNodeType.UnaryExpression:
-                    UnaryExpression UnaryExpression = current.As<UnaryExpression>();
-                    break;
-                case SyntaxNodeType.FunctionCall:
-                    FunctionCall FunctionCall = current.As<FunctionCall>();
-                    break;
-            }
+            tree.root.OnCodeGenVisit();
         }
     }
     partial class Program
@@ -181,7 +102,6 @@ namespace MiniC.Compiler
         {
             foreach (Statement statement in Statements)
             {
-                statement.OnAnalyzerVisit(ref analyzer);
             }
         }
     }
@@ -190,6 +110,7 @@ namespace MiniC.Compiler
         public virtual void OnCodeGenVisit()
         {
             // 没有 Statement 类的节点
+            throw new NotImplementedException();
         }
     }
     partial class BlockStatement

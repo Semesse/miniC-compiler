@@ -82,7 +82,7 @@ namespace MiniC.Compiler
         Address,
         Dereference
     }
-    class SyntaxNode
+    partial class SyntaxNode
     {
         [JsonProperty(Order = -2)]
         public SyntaxNodeType Type;
@@ -232,8 +232,8 @@ namespace MiniC.Compiler
                 {"||", 1},
                 {"&&", 2},
                 {"|", 3},
+                {"&", 3},
                 {"^", 4},
-                {"&", 5},
                 {"==", 6},
                 {"!=", 6},
                 {"===", 6},
@@ -268,19 +268,36 @@ namespace MiniC.Compiler
                 }
                 else if (tokens[i].Type == TokenType.Operator)
                 {
-                    if (tokens[i].Form == TokenForm.Not)
+                    while (Operators.Count > 0)
                     {
-                        Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
-                    }
-                    else
-                    {
-                        while (Operators.Count > 0 && operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
+                        if(Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
+                        {
+                            Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
+                        }
+                        else if(operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
                         {
                             Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
                         }
-                        Operators.Push(tokens[i]);
+                        else
+                        {
+                            break;
+                        }
                     }
+                    Operators.Push(tokens[i]);
                     i++;
+                    //if (tokens[i].Form.In(TokenForm.Not, TokenForm.Address))
+                    //{
+                    //    Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
+                    //}
+                    //else
+                    //{
+                    //    while (Operators.Count > 0 && operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
+                    //    {
+                    //        Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
+                    //    }
+                    //    Operators.Push(tokens[i]);
+                    //}
+                    //i++;
                 }
                 else if (tokens[i].Form.In(TokenForm.LeftParen))
                 {
@@ -295,7 +312,14 @@ namespace MiniC.Compiler
             }
             while (Operators.Count > 0)
             {
-                Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
+                if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
+                {
+                    Operands.Push(new UnaryExpression(Operators.Pop(), Operands.Pop()));
+                }
+                else
+                {
+                    Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
+                }
             }
             if (Operands.Count > 1)
                 throw new ParseException($"行{tokens[0].Line}-{tokens[tokens.Count - 1]}无效的表达式");
@@ -319,7 +343,7 @@ namespace MiniC.Compiler
     partial class Identifier : PrimaryExpression
     {
         public string IdentifierName;
-        //public int BlockId;
+        int BlockId;
 
         public Identifier(string value)
         {

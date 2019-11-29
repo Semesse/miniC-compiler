@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace MiniC.Compiler
 {
-    class Util
+    class AssembleUtil
     {
-
+        public static UInt32 FloatToUint(float a)
+        {
+            return Convert.ToUInt32(a);
+        }
     }
     static class ExtUtil
     {

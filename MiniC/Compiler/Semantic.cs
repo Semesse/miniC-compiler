@@ -10,7 +10,10 @@ namespace MiniC.Compiler
     {
         public SemanticError(string Message) : base(Message)
         {
-
+        }
+        public override string ToString()
+        {
+            return $"{Message}";
         }
     }
     class Symbol
@@ -31,33 +34,52 @@ namespace MiniC.Compiler
             Arguments = arguments;
             AsmLabel = $"_Sem{name}";
         }
-        public bool CheckValid(List<Expression> arguments)
+        public bool CheckValid(string functionName, List<ReturnType> arguments)
         {
-            if(SymbolName == "printf" || SymbolName == "scanf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
+            bool flag = false;
+            if (SymbolName == functionName)
             {
-                return true;
-            }else if(SymbolName == "scanf")
-            {
+                try
+                {
+                    for (int i = 0; i < Arguments.Count; i++)
+                    {
+                        if (arguments[i] != (ReturnType)this.Arguments[i].VariableType)
+                            return false;
+                    }
+                }
+                catch
+                {
 
+                }
             }
-            return false;
+            return flag;
         }
     }
     class VariableSymbol : Symbol
     {
         public VariableType VariableType;
+        public VariableSymbol(int block, VariableType variableType, string name)
+        {
+            BlockId = block;
+            VariableType = variableType;
+            SymbolName = name;
+        }
     }
     class SymbolTable
     {
-        List<VariableSymbol> VariableSymbols;
-        List<FunctionSymbol> FunctionSymbols;
+        public List<VariableSymbol> VariableSymbols;
+        public List<FunctionSymbol> FunctionSymbols;
+        public List<Literal> Literals;
+        public static List<FunctionSymbol> PredefinedFunctions;
         public SymbolTable()
         {
             VariableSymbols = new List<VariableSymbol>();
             FunctionSymbols = new List<FunctionSymbol>();
-            FunctionSymbols.Add(new FunctionSymbol(0, "printf", ReturnType.Void, null));
-            FunctionSymbols.Add(new FunctionSymbol(0, "scanf", ReturnType.Void, null));
-            FunctionSymbols.Add(new FunctionSymbol(0, "printf", ReturnType.Void, null));
+            Literals = new List<Literal>();
+            PredefinedFunctions = new List<FunctionSymbol>();
+            PredefinedFunctions.Add(new FunctionSymbol(0, "printf", ReturnType.Void, null));
+            PredefinedFunctions.Add(new FunctionSymbol(0, "scanf", ReturnType.Void, null));
+            //FunctionSymbols.Add(new FunctionSymbol(0, "pow", ReturnType., null));
         }
         public void AddSymbol(VariableSymbol symbol)
         {
@@ -67,13 +89,36 @@ namespace MiniC.Compiler
         {
             FunctionSymbols.Add(symbol);
         }
-
+        public void AddLiteral(Literal l)
+        {
+            Literals.Add(l);
+        }
+        public VariableSymbol FindVariable(int block, string variableName)
+        {
+            return VariableSymbols.Where(sym => sym.BlockId == block && sym.SymbolName == variableName).First();
+        }
+        public FunctionSymbol FindFunction(string functionName, List<Expression> arguments)
+        {
+            if (functionName == "scanf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
+            {
+                return PredefinedFunctions[0];
+            }
+            else if (functionName == "printf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
+            {
+                return PredefinedFunctions[1];
+            }
+            List<ReturnType> argTypes = arguments.ConvertAll<ReturnType>(x =>
+            {
+                return x.CalcReturnType(this);
+            });
+            return FunctionSymbols.Where(sym => sym.CheckValid(functionName, argTypes)).FirstOrDefault();
+        }
     }
     class SemanticAnalyzer
     {
-        Dictionary<int, int> BlockParent;
+        public Dictionary<int, int> BlockParent;
         SyntaxTree SyntaxTree;
-        SymbolTable SymbolTable;
+        public SymbolTable SymbolTable;
         public SemanticAnalyzer(SyntaxTree syntaxTree)
         {
             this.SyntaxTree = syntaxTree;
@@ -82,90 +127,12 @@ namespace MiniC.Compiler
         }
         void AnalyzeRecursive(SyntaxNode current, int blockId)
         {
-            //switch (current.Type)
-            //{
-            //    case SyntaxNodeType.Program:
-            //        Program Program = current.As<Program>();
-            //        break;
-            //    case SyntaxNodeType.Statement:
-            //        Statement Statement = current.As<Statement>();
-            //        break;
-            //    case SyntaxNodeType.BlockStatement:
-            //        BlockStatement BlockStatement = current.As<BlockStatement>();
-            //        break;
-            //    case SyntaxNodeType.Expression:
-            //        Expression Expression = current.As<Expression>();
-            //        break;
-            //    case SyntaxNodeType.PrimaryExpression:
-            //        PrimaryExpression PrimaryExpression = current.As<PrimaryExpression>();
-            //        break;
-            //    case SyntaxNodeType.Identifier:
-            //        Identifier Identifier = current.As<Identifier>();
-            //        break;
-            //    case SyntaxNodeType.BooleanLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.CharLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.FloatLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.IntegerLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.NullLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.StringLiteral:
-            //        Literal Literal = current.As<Literal>();
-            //        break;
-            //    case SyntaxNodeType.FunctionDeclaration:
-            //        FunctionDeclaration FunctionDeclaration = current.As<FunctionDeclaration>();
-            //        break;
-            //    case SyntaxNodeType.FormalArgument:
-            //        FormalArgument FormalArgument = current.As<FormalArgument>();
-            //        break;
-            //    case SyntaxNodeType.VariableDeclaration:
-            //        VariableDeclaration VariableDeclaration = current.As<VariableDeclaration>();
-            //        break;
-            //    case SyntaxNodeType.VariableDeclarator:
-            //        VariableDeclarator VariableDeclarator = current.As<VariableDeclarator>();
-            //        break;
-            //    case SyntaxNodeType.IfStatement:
-            //        IfStatement IfStatement = current.As<IfStatement>();
-            //        break;
-            //    case SyntaxNodeType.ForStatement:
-            //        ForStatement ForStatement = current.As<ForStatement>();
-            //        break;
-            //    case SyntaxNodeType.WhileStatement:
-            //        WhileStatement WhileStatement = current.As<WhileStatement>();
-            //        break;
-            //    case SyntaxNodeType.ReturnStatement:
-            //        ReturnStatement ReturnStatement = current.As<ReturnStatement>();
-            //        break;
-            //    case SyntaxNodeType.ExpressionStatement:
-            //        ExpressionStatement ExpressionStatement = current.As<ExpressionStatement>();
-            //        break;
-            //    case SyntaxNodeType.AssignmentExpression:
-            //        AssignmentExpression AssignmentExpression = current.As<AssignmentExpression>();
-            //        break;
-            //    case SyntaxNodeType.BinaryExpression:
-            //        BinaryExpression BinaryExpression = current.As<BinaryExpression>();
-            //        break;
-            //    case SyntaxNodeType.UnaryExpression:
-            //        UnaryExpression UnaryExpression = current.As<UnaryExpression>();
-            //        break;
-            //    case SyntaxNodeType.FunctionCall:
-            //        FunctionCall FunctionCall = current.As<FunctionCall>();
-            //        break;
-            //}
         }
         public SymbolTable Analyze()
         {
             try
             {
-                AnalyzeRecursive(SyntaxTree.root, 0);
+                SyntaxTree.root.OnAnalyzerVisit(this, 0);
             }
             catch (SemanticError)
             {
@@ -181,70 +148,155 @@ namespace MiniC.Compiler
         {
             SymbolTable.AddSymbol(symbol);
         }
+        public void AddLiteral(Literal l)
+        {
+            SymbolTable.AddLiteral(l);
+        }
         public void AddBlock(int child, int parent)
         {
             BlockParent.Add(child, parent);
         }
-        public void FindFunction
+        public FunctionSymbol FindFunction(string FunctionName, List<Expression> arguments)
+        {
+            return SymbolTable.FindFunction(FunctionName, arguments);
+        }
+        public VariableSymbol FindVariable(int block, string name)
+        {
+            return SymbolTable.FindVariable(block, name);
+        }
+        public bool HasVariable(int block, string name)
+        {
+            return FindVariable(block, name) != null;
+        }
+        public bool HasFunction(string functionName, List<Expression> arguments)
+        {
+            return FindFunction(functionName, arguments) != null;
+        }
+    }
+    partial class SyntaxNode
+    {
+        public virtual void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            throw new NotImplementedException();
+        }
     }
     partial class Program
     {
-        public void OnAnalyzerVisit(ref SemanticAnalyzer analyzer)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            foreach(Statement statement in Statements)
+            SemanticAnalyzer tanalyzer = analyzer;
+            foreach (Statement statement in Statements)
             {
-                statement.OnAnalyzerVisit(ref analyzer, 0);
+                statement.OnAnalyzerVisit(tanalyzer, 0);
             }
         }
     }
     partial class Statement
     {
-        public virtual void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             // 没有 Statement 类的节点
+            throw new NotImplementedException();
         }
     }
     partial class BlockStatement
     {
-        public override void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            analyzer.AddBlock(this.BlockId, blockId);
+            analyzer.AddBlock(this.BlockId, block);
             foreach (Statement statement in Statements)
             {
-                statement.OnAnalyzerVisit(ref analyzer, BlockId);
+                statement.OnAnalyzerVisit(analyzer, BlockId);
             }
         }
     }
     partial class Expression
     {
-        public virtual void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        protected ReturnType Return = ReturnType.Void;
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             // 没有 Expression 类的节点
+            throw new NotImplementedException();
+        }
+
+        public virtual ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            throw new NotImplementedException();
+        }
+        public virtual ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            throw new NotImplementedException();
         }
     }
     partial class PrimaryExpression
     {
-        public override void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             // 没有 PrimaryExpression类的节点
+            throw new NotImplementedException();
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            throw new NotImplementedException();
         }
     }
     partial class Identifier
     {
         // This is VISITED only within Expression as an variable
         // In FunctionDecl and VariableDecl it is added to SymbolTable
-        public override void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            
+            BlockId = block;
+            Return = (ReturnType)analyzer.FindVariable(BlockId, IdentifierName).VariableType;
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            return Return == ReturnType.Void ? (ReturnType)analyzer.FindVariable(BlockId, IdentifierName).VariableType : Return;
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            return Return == ReturnType.Void ? (ReturnType)symbols.FindVariable(BlockId, IdentifierName).VariableType : Return;
         }
     }
     partial class Literal
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            analyzer.AddLiteral(this);
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            ReturnType r = new Dictionary<SyntaxNodeType, ReturnType>()
+            {
+                { SyntaxNodeType.StringLiteral, ReturnType.Void },
+                { SyntaxNodeType.CharLiteral, ReturnType.Char },
+                { SyntaxNodeType.IntegerLiteral, ReturnType.Int },
+                { SyntaxNodeType.FloatLiteral, ReturnType.Float },
+                { SyntaxNodeType.BooleanLiteral, ReturnType.Char },
+            }[this.Type];
+            return r;
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            ReturnType r = new Dictionary<SyntaxNodeType, ReturnType>()
+            {
+                { SyntaxNodeType.StringLiteral, ReturnType.Void },
+                { SyntaxNodeType.CharLiteral, ReturnType.Char },
+                { SyntaxNodeType.IntegerLiteral, ReturnType.Int },
+                { SyntaxNodeType.FloatLiteral, ReturnType.Float },
+                { SyntaxNodeType.BooleanLiteral, ReturnType.Char },
+            }[this.Type];
+            return r;
+        }
     }
     partial class FunctionDeclaration
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            FunctionSymbol symbol = new FunctionSymbol(block, Identifier.IdentifierName, ReturnType, ArgumentList);
+            analyzer.AddSymbol(symbol);
+            Block.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class FormalArgument
     {
@@ -252,56 +304,159 @@ namespace MiniC.Compiler
     }
     partial class VariableDeclaration
     {
-        public new void OnAnalyzerVisit(ref SemanticAnalyzer analyzer, int blockId)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            foreach(VariableDeclarator declarator in Declarators)
+            foreach (VariableDeclarator declarator in Declarators)
             {
-
+                declarator.OnAnalyzerVisit(analyzer, block);
             }
         }
     }
     partial class VariableDeclarator
     {
-        public void OnAnalyzerVisit(ref SemanticAnalyzer analyzer)
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            VariableSymbol symbol = new VariableSymbol();
+            VariableSymbol symbol = new VariableSymbol(block, DeclareType, Identifier.IdentifierName);
             analyzer.AddSymbol(symbol);
         }
     }
     partial class IfStatement
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Test.OnAnalyzerVisit(analyzer, block);
+            Block.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class ForStatement
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Init.OnAnalyzerVisit(analyzer, block);
+            Test.OnAnalyzerVisit(analyzer, block);
+            Update.OnAnalyzerVisit(analyzer, block);
+            Block.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class WhileStatement
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Test.OnAnalyzerVisit(analyzer, block);
+            Block.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class ReturnStatement
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            ReturnValue.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class ExpressionStatement
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Expression.OnAnalyzerVisit(analyzer, block);
+        }
     }
     partial class AssignmentExpression
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Identifier.OnAnalyzerVisit(analyzer, block);
+            Value.OnAnalyzerVisit(analyzer, block);
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            ReturnType var = Identifier.CalcReturnType(analyzer);
+            ReturnType exp = Value.CalcReturnType(analyzer);
+            if (var != exp)
+                throw new SemanticError($"Invalid Assignment {var} = {exp}");
+            return var;
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            ReturnType var = Identifier.CalcReturnType(symbols);
+            ReturnType exp = Value.CalcReturnType(symbols);
+            if (var != exp)
+                throw new SemanticError($"Invalid Assignment {var} = {exp}");
+            return var;
+        }
     }
     partial class BinaryExpression
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Left.OnAnalyzerVisit(analyzer, block);
+            Right.OnAnalyzerVisit(analyzer, block);
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            //Dictionary<ReturnType, int> cast = new Dictionary<ReturnType, int>()
+            //{
+            //    {ReturnType.Char, 1},
+            //    {ReturnType.Int, 2},
+            //    {ReturnType.Float, 3},
+            //};
+            //int left, right;
+            //try
+            //{
+            //    cast.TryGetValue(Left.CalcReturnType(analyzer), out left);
+            //    cast.TryGetValue(Right.CalcReturnType(analyzer), out right);
+            //}
+            //catch
+            //{
+            //    throw new SemanticError($"Invalid Operand Type {Left}({Left.CalcReturnType(analyzer)}) and {Right}({Right.CalcReturnType(analyzer)})");
+            //}
+            ReturnType leftRet = Left.CalcReturnType(analyzer);
+            ReturnType rightRet = Right.CalcReturnType(analyzer);
+            if (leftRet != rightRet)
+                throw new SemanticError($"Invalid Operand {leftRet} {Operator} {rightRet}");
+            return leftRet;
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            ReturnType leftRet = Left.CalcReturnType(symbols);
+            ReturnType rightRet = Right.CalcReturnType(symbols);
+            if (leftRet != rightRet)
+                throw new SemanticError($"Invalid Operand {leftRet} {Operator} {rightRet}");
+            return leftRet;
+        }
     }
     partial class UnaryExpression
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            Expression.OnAnalyzerVisit(analyzer, block);
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            return this.Expression.CalcReturnType(analyzer);
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            return this.Expression.CalcReturnType(symbols);
+        }
     }
     partial class FunctionCall
     {
-
+        public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
+        {
+            foreach (Expression arg in Arguments)
+            {
+                arg.OnAnalyzerVisit(analyzer, block);
+            }
+            if (!analyzer.HasFunction(Identifier.IdentifierName, Arguments))
+                throw new SemanticError($"No corresponding function defined as {this.Identifier.IdentifierName}");
+        }
+        public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
+        {
+            return analyzer.FindFunction(Identifier.IdentifierName, Arguments).ReturnType;
+        }
+        public override ReturnType CalcReturnType(SymbolTable symbols)
+        {
+            return symbols.FindFunction(Identifier.IdentifierName, Arguments).ReturnType;
+        }
     }
 }

@@ -27,6 +27,7 @@ namespace MiniC
         Lexer lexer;
         List<Token> tokens;
         SyntaxTree syntaxTree;
+        SemanticAnalyzer analyzer;
         static SolidColorBrush KeywordBrush = new SolidColorBrush(Color.FromRgb(0x2a, 0xa1, 0x98));
         static SolidColorBrush CommentBrush = new SolidColorBrush(Color.FromRgb(0x85, 0x99, 0x00));
         static SolidColorBrush LiteralBrush = new SolidColorBrush(Color.FromRgb(0xcb, 0x4b, 0x16));
@@ -107,6 +108,10 @@ namespace MiniC
         {
             Parse();
         }
+        private void GenerateASM(object sender, RoutedEventArgs e)
+        {
+            GenerateASM();
+        }
         private void Tokenize()
         {
             Lexer l = new Lexer(GetText(input));
@@ -131,7 +136,20 @@ namespace MiniC
                 SetText(display, e.Message);
             }
         }
-
+        private void GenerateASM()
+        {
+            try
+            {
+                Parse();
+                analyzer = new SemanticAnalyzer(syntaxTree);
+                analyzer.Analyze();
+                SetText(display, JsonConvert.SerializeObject(analyzer, Formatting.Indented));
+            }
+            catch (SemanticError e)
+            {
+                SetText(display, e.Message);
+            }
+        }
         private void Highlight()
         {
             lexer.SetSource(GetText(input));

@@ -28,6 +28,7 @@ namespace MiniC
         List<Token> tokens;
         SyntaxTree syntaxTree;
         SemanticAnalyzer analyzer;
+        AssemblyGenerator generator;
         static SolidColorBrush KeywordBrush = new SolidColorBrush(Color.FromRgb(0x2a, 0xa1, 0x98));
         static SolidColorBrush CommentBrush = new SolidColorBrush(Color.FromRgb(0x85, 0x99, 0x00));
         static SolidColorBrush LiteralBrush = new SolidColorBrush(Color.FromRgb(0xcb, 0x4b, 0x16));
@@ -112,6 +113,10 @@ namespace MiniC
         {
             GenerateASM();
         }
+        private void Run(object sender, RoutedEventArgs e)
+        {
+            Run();
+        }
         private void Tokenize()
         {
             Lexer l = new Lexer(GetText(input));
@@ -136,7 +141,7 @@ namespace MiniC
                 SetText(display, e.Message);
             }
         }
-        private void GenerateASM()
+        private void SemanticAnalyze()
         {
             try
             {
@@ -149,6 +154,28 @@ namespace MiniC
             {
                 SetText(display, e.Message);
             }
+        }
+        private string GenerateASM()
+        {
+            try
+            {
+                SemanticAnalyze();
+                generator = new AssemblyGenerator(syntaxTree, analyzer.SymbolTable);
+                string code = generator.Generate();
+                SetText(display, code);
+                return code;
+            }
+            catch(KeyNotFoundException e)
+            {
+                SetText(display, e.Message);
+            }
+            return "";
+        }
+        private void Run()
+        {
+            string code = GenerateASM();
+            Runner.AssembleAndLink(code);
+            Runner.Run();
         }
         private void Highlight()
         {

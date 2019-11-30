@@ -163,6 +163,8 @@ namespace MiniC.Compiler
                     return new ForStatement(tokens);
                 case TokenForm.While:
                     return new WhileStatement(tokens);
+                case TokenForm.Return:
+                    return new ReturnStatement(tokens);
                 default:
                     return new ExpressionStatement(tokens);
             }
@@ -353,7 +355,7 @@ namespace MiniC.Compiler
     }
     partial class Literal : PrimaryExpression
     {
-        public dynamic value;
+        public dynamic Value;
         public Literal(Token token)
         {
             Type = new Dictionary<TokenForm, SyntaxNodeType>()
@@ -364,7 +366,7 @@ namespace MiniC.Compiler
                 { TokenForm.FloatLiteral, SyntaxNodeType.FloatLiteral },
                 { TokenForm.BooleanLiteral, SyntaxNodeType.BooleanLiteral },
             }[token.Form];
-            value = token.Value;
+            Value = token.Value;
         }
     }
     partial class FormalArgument : SyntaxNode

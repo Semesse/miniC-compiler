@@ -32,7 +32,14 @@ namespace MiniC.Compiler
             SymbolName = name;
             ReturnType = type;
             Arguments = arguments;
-            AsmLabel = $"_Sem{name}";
+            if ("main,scanf,printf".Contains(name))
+            {
+                AsmLabel = $"_{name}";
+            }
+            else
+            {
+                AsmLabel = $"_Sem{name}";
+            }
         }
         public bool CheckValid(string functionName, List<ReturnType> arguments)
         {
@@ -67,6 +74,7 @@ namespace MiniC.Compiler
     }
     class SymbolTable
     {
+        public Dictionary<int, int> BlockParent;
         public List<VariableSymbol> VariableSymbols;
         public List<FunctionSymbol> FunctionSymbols;
         public List<Literal> Literals;
@@ -76,6 +84,7 @@ namespace MiniC.Compiler
             VariableSymbols = new List<VariableSymbol>();
             FunctionSymbols = new List<FunctionSymbol>();
             Literals = new List<Literal>();
+            BlockParent = new Dictionary<int, int>();
             PredefinedFunctions = new List<FunctionSymbol>();
             PredefinedFunctions.Add(new FunctionSymbol(0, "printf", ReturnType.Void, null));
             PredefinedFunctions.Add(new FunctionSymbol(0, "scanf", ReturnType.Void, null));
@@ -95,17 +104,20 @@ namespace MiniC.Compiler
         }
         public VariableSymbol FindVariable(int block, string variableName)
         {
-            return VariableSymbols.Where(sym => sym.BlockId == block && sym.SymbolName == variableName).First();
+            List<int> parentBlocks = new List<int>();
+            parentBlocks.Add(block);
+            while (parentBlocks.Last() != 0) parentBlocks.Add(BlockParent[parentBlocks.Last()]);
+            return VariableSymbols.Where(sym => parentBlocks.Contains(sym.BlockId) && sym.SymbolName == variableName).First();
         }
         public FunctionSymbol FindFunction(string functionName, List<Expression> arguments)
         {
             if (functionName == "scanf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
             {
-                return PredefinedFunctions[0];
+                return PredefinedFunctions[1];
             }
             else if (functionName == "printf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
             {
-                return PredefinedFunctions[1];
+                return PredefinedFunctions[0];
             }
             List<ReturnType> argTypes = arguments.ConvertAll<ReturnType>(x =>
             {
@@ -113,16 +125,18 @@ namespace MiniC.Compiler
             });
             return FunctionSymbols.Where(sym => sym.CheckValid(functionName, argTypes)).FirstOrDefault();
         }
+        public FunctionSymbol FindFunction(string functionName, List<FormalArgument> arguments)
+        {
+            return FunctionSymbols.Where(sym => sym.SymbolName == functionName && sym.Arguments.SequenceEqual(arguments)).FirstOrDefault();
+        }
     }
     class SemanticAnalyzer
     {
-        public Dictionary<int, int> BlockParent;
         SyntaxTree SyntaxTree;
         public SymbolTable SymbolTable;
         public SemanticAnalyzer(SyntaxTree syntaxTree)
         {
             this.SyntaxTree = syntaxTree;
-            BlockParent = new Dictionary<int, int>();
             SymbolTable = new SymbolTable();
         }
         void AnalyzeRecursive(SyntaxNode current, int blockId)
@@ -154,7 +168,7 @@ namespace MiniC.Compiler
         }
         public void AddBlock(int child, int parent)
         {
-            BlockParent.Add(child, parent);
+            SymbolTable.BlockParent.Add(child, parent);
         }
         public FunctionSymbol FindFunction(string FunctionName, List<Expression> arguments)
         {
@@ -242,12 +256,17 @@ namespace MiniC.Compiler
     }
     partial class Identifier
     {
+        public Symbol symbol;
         // This is VISITED only within Expression as an variable
         // In FunctionDecl and VariableDecl it is added to SymbolTable
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             BlockId = block;
-            Return = (ReturnType)analyzer.FindVariable(BlockId, IdentifierName).VariableType;
+            if (true)
+            {
+                symbol = analyzer.FindVariable(BlockId, IdentifierName);
+                Return = (ReturnType)((VariableSymbol)symbol).VariableType;
+            }
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {
@@ -291,9 +310,10 @@ namespace MiniC.Compiler
     }
     partial class FunctionDeclaration
     {
+        FunctionSymbol symbol;
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            FunctionSymbol symbol = new FunctionSymbol(block, Identifier.IdentifierName, ReturnType, ArgumentList);
+            symbol = new FunctionSymbol(block, Identifier.IdentifierName, ReturnType, ArgumentList);
             analyzer.AddSymbol(symbol);
             Block.OnAnalyzerVisit(analyzer, block);
         }
@@ -314,9 +334,10 @@ namespace MiniC.Compiler
     }
     partial class VariableDeclarator
     {
+        VariableSymbol symbol;
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
-            VariableSymbol symbol = new VariableSymbol(block, DeclareType, Identifier.IdentifierName);
+            symbol = new VariableSymbol(block, DeclareType, Identifier.IdentifierName);
             analyzer.AddSymbol(symbol);
         }
     }
@@ -441,13 +462,15 @@ namespace MiniC.Compiler
     }
     partial class FunctionCall
     {
+        FunctionSymbol Symbol;
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             foreach (Expression arg in Arguments)
             {
                 arg.OnAnalyzerVisit(analyzer, block);
             }
-            if (!analyzer.HasFunction(Identifier.IdentifierName, Arguments))
+            Symbol = analyzer.FindFunction(Identifier.IdentifierName, Arguments);
+            if (Symbol == null)
                 throw new SemanticError($"No corresponding function defined as {this.Identifier.IdentifierName}");
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)

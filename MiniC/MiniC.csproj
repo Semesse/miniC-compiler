@@ -69,6 +69,7 @@
     <Compile Include="Compiler\Assembly.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="Compiler\Parser.cs" />
+    <Compile Include="Compiler\Runner.cs" />
     <Compile Include="Compiler\Semantic.cs" />
     <Compile Include="Compiler\Syntax.cs" />
     <Compile Include="Compiler\Token.cs" />
@@ -96,6 +97,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="ClassDiagram2.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

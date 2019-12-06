@@ -24,7 +24,6 @@ namespace MiniC.Compiler
             using (Process proc = Process.Start(p))
             {
                 proc.WaitForExit();
-
                 // Retrieve the app's exit code
                 exitCode = proc.ExitCode;
             }

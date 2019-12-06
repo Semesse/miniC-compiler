@@ -232,7 +232,11 @@ namespace MiniC.Compiler
             // 没有 Expression 类的节点
             throw new NotImplementedException();
         }
-
+        public ReturnType GetReturnType()
+        {
+            if (Return == ReturnType.Void) throw new SemanticError("Could not return void");
+            return Return;
+        }
         public virtual ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {
             throw new NotImplementedException();

@@ -76,6 +76,18 @@ namespace MiniC.Compiler
     {
 
     }
+    class IdentifierEquality : IEqualityComparer<Identifier>
+    {
+        public int GetHashCode(Identifier id) { return id.symbol.GetHashCode(); }
+        public bool Equals(Identifier id1, Identifier id2) { return id1.symbol == id2.symbol; }
+    }
+    partial class Identifier
+    {
+        public bool isVariable()
+        {
+            return symbol is VariableSymbol ? true : false;
+        }
+    }
     class Instruction : ASMCode
     {
         Operator Operator;
@@ -84,34 +96,67 @@ namespace MiniC.Compiler
     }
     class StackMemory
     {
-        public int TotalBytes = 0;
+        public int ParameterBytes = 4, LocalBytes = 4;
         public Dictionary<Identifier, int> VarOffset;
-        int CharCount = 0, LastCharOffset = 0;
+        int ParameterCharCount = 0, LocalCharCount = 0, ParameterLastCharOffset = 0, LocalLastCharOffset = 0;
+        public StackMemory()
+        {
+            VarOffset = new Dictionary<Identifier, int>(new IdentifierEquality());
+        }
         public void Alloc(VariableType type, Identifier argument)
         {
             switch (type)
             {
                 case VariableType.Char:
-                    if(CharCount % 4 == 0)
+                    if(ParameterCharCount % 4 == 0)
                     {
-                        TotalBytes += 4;
-                        CharCount++;
-                        LastCharOffset = -TotalBytes;
-                        VarOffset[argument] = LastCharOffset;
+                        LocalBytes += 4;
+                        ParameterCharCount++;
+                        ParameterLastCharOffset = LocalBytes;
+                        VarOffset[argument] = ParameterLastCharOffset;
                     }
                     else
                     {
-                        CharCount++;
-                        LastCharOffset++;
+                        ParameterCharCount++;
+                        ParameterLastCharOffset++;
                     }
                     break;
                 case VariableType.Float:
-                    TotalBytes += 4;
-                    VarOffset[argument] = -TotalBytes;
+                    LocalBytes += 4;
+                    VarOffset[argument] = LocalBytes;
                     break;
                 case VariableType.Int:
-                    TotalBytes += 4;
-                    VarOffset[argument] = -TotalBytes;
+                    LocalBytes += 4;
+                    VarOffset[argument] = LocalBytes;
+                    break;
+            }
+        }
+        public void Alloc(Identifier local)
+        {
+            VariableType type = ((VariableSymbol)local.symbol).VariableType;
+            switch (type)
+            {
+                case VariableType.Char:
+                    if (LocalCharCount % 4 == 0)
+                    {
+                        LocalBytes += 4;
+                        LocalCharCount++;
+                        LocalLastCharOffset = -LocalBytes;
+                        VarOffset[local] = LocalLastCharOffset;
+                    }
+                    else
+                    {
+                        LocalCharCount++;
+                        LocalLastCharOffset++;
+                    }
+                    break;
+                case VariableType.Float:
+                    LocalBytes += 4;
+                    VarOffset[local] = -LocalBytes;
+                    break;
+                case VariableType.Int:
+                    LocalBytes += 4;
+                    VarOffset[local] = -LocalBytes;
                     break;
             }
         }
@@ -154,7 +199,22 @@ namespace MiniC.Compiler
             }
             mem.Alloc(argument.VariableType, argument.Identifier);
         }
-        public int GetLocalVariableBytes(int block)
+        public void AllocMemory(Identifier localVariable)
+        {
+            StackMemory mem;
+            try
+            {
+                mem = Memory[localVariable.BlockId];
+                //Memory.TryGetValue(block, out mem);
+            }
+            catch (KeyNotFoundException)
+            {
+                mem = new StackMemory();
+                Memory.Add(localVariable.BlockId, mem);
+            }
+            mem.Alloc(localVariable);
+        }
+        public int GetParameterBytes(int block)
         {
             StackMemory mem;
             try
@@ -166,11 +226,23 @@ namespace MiniC.Compiler
                 mem = new StackMemory();
                 Memory.Add(block, mem);
             }
-            return Memory[block].TotalBytes;
+            return Memory[block].ParameterBytes;
         }
         public int GetVariableOffset(Identifier variable)
         {
-            return Memory[variable.symbol.BlockId].GetOffset(variable);
+            int block = variable.symbol.BlockId;
+            do
+            {
+                try
+                {
+                    return Memory[block].GetOffset(variable);
+                }
+                catch
+                {
+                    block = symbols.BlockParent[block];
+                }
+            } while (block != 0);
+            throw new SemanticError($"No Variable {variable.IdentifierName} in block {variable.BlockId}");
         }
         public string GetLiteralLabel(Literal literal)
         {
@@ -260,7 +332,8 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             string postfix = ((VariableSymbol)symbol).VariableType == VariableType.Char ? "b" : "l";
-            assembler.EmitCode($"\tmov{postfix} {assembler.GetVariableOffset(this)},%eax");
+            string target = ((VariableSymbol)symbol).VariableType == VariableType.Char ? "%al" : "%eax";
+            assembler.EmitCode($"\tmov{postfix} {assembler.GetVariableOffset(this)}(%ebp),{target}");
         }
     }
     partial class Literal
@@ -310,9 +383,9 @@ namespace MiniC.Compiler
             assembler.EmitCode($"\tpushl %ebp");
             assembler.EmitCode($"\tmovl %esp, %ebp");
             assembler.EmitCode($"\tandl $-16, %esp");
-            int TotalBytes = assembler.GetLocalVariableBytes(Block.BlockId);
+            int TotalBytes = assembler.GetParameterBytes(Block.BlockId);
             if(TotalBytes != 0)
-                assembler.EmitCode($"\tsubl ${TotalBytes}, %esp");
+                assembler.EmitCode($"\tsubl ${(TotalBytes >= 16 ? TotalBytes : 16)}, %esp");
             if (Identifier.IdentifierName == "main")
             {
                 assembler.EmitCode($"\tcall ___main");
@@ -337,14 +410,24 @@ namespace MiniC.Compiler
     {
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            // This will not be visited
+            foreach(VariableDeclarator declarator in Declarators)
+            {
+                declarator.OnCodeGenVisit(assembler);
+            }
         }
     }
     partial class VariableDeclarator
     {
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            // This will not be visited
+            assembler.AllocMemory(Identifier);
+            if (Init != null)
+            {
+                Init.OnCodeGenVisit(assembler);
+                string postfix = ((VariableSymbol)symbol).VariableType == VariableType.Char ? "b" : "l";
+                string target = ((VariableSymbol)symbol).VariableType == VariableType.Char ? "%al" : "%eax";
+                assembler.EmitCode($"\tmov{postfix} {target}, {assembler.GetVariableOffset(this.Identifier)}(%ebp)");
+            }
         }
     }
     partial class IfStatement
@@ -365,10 +448,11 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Init.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\t _SEM_FOR{count}:");
+            assembler.EmitCode($"_SEM_FOR{count}:");
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjge _SEM_ENDFOR{count}:");
+            assembler.EmitCode($"\tjge _SEM_ENDFOR{count}");
             Block.OnCodeGenVisit(assembler);
+            Update.OnCodeGenVisit(assembler);
             assembler.EmitCode($"\tjmp _SEM_FOR{count}");
             assembler.EmitCode($"_SEM_ENDFOR{count}:");
             count++;
@@ -379,9 +463,9 @@ namespace MiniC.Compiler
         static int count = 0;
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            assembler.EmitCode($"\t _SEM_WHILE{count}:");
+            assembler.EmitCode($"_SEM_WHILE{count}:");
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjge _SEM_ENDWHILE{count}:");
+            assembler.EmitCode($"\tjge _SEM_ENDWHILE{count}");
             Block.OnCodeGenVisit(assembler);
             assembler.EmitCode($"\tjmp _SEM_WHILE{count}");
             assembler.EmitCode($"_SEM_ENDWHILE{count}:");
@@ -416,7 +500,14 @@ namespace MiniC.Compiler
         {
             int offset = assembler.GetVariableOffset(Identifier);
             Value.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tmovl %eax, {offset}(%esp)");
+            if (Identifier.isVariable())
+            {
+                assembler.EmitCode($"\tmovl %eax, {offset}(%ebp)");
+            }
+            else
+            {
+                assembler.EmitCode($"\tmovl %eax, {offset}(%ebp)");
+            }
         }
     }
     partial class BinaryExpression
@@ -473,37 +564,37 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsete %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterEqual:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetge %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterThan:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetg %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.LessEqual:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetl %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.LessThan:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetle %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.NotEqual:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetne %al");
                     if (postfix == "l")
-                        assembler.EmitCode($"movzbl %al,%eax");
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
             }
         }

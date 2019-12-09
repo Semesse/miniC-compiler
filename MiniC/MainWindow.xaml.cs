@@ -165,7 +165,7 @@ namespace MiniC
                 SetText(display, code);
                 return code;
             }
-            catch(KeyNotFoundException e)
+            catch(SemanticError e)
             {
                 SetText(display, e.Message);
             }

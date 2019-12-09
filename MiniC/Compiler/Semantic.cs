@@ -53,6 +53,7 @@ namespace MiniC.Compiler
                         if (arguments[i] != (ReturnType)this.Arguments[i].VariableType)
                             return false;
                     }
+                    flag = true;
                 }
                 catch
                 {
@@ -234,7 +235,8 @@ namespace MiniC.Compiler
         }
         public ReturnType GetReturnType()
         {
-            if (Return == ReturnType.Void) throw new SemanticError("Could not return void");
+            if (Return == ReturnType.Void)
+                throw new SemanticError("Could not return void");
             return Return;
         }
         public virtual ReturnType CalcReturnType(SemanticAnalyzer analyzer)
@@ -286,6 +288,7 @@ namespace MiniC.Compiler
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             analyzer.AddLiteral(this);
+            CalcReturnType(analyzer);
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {
@@ -297,6 +300,7 @@ namespace MiniC.Compiler
                 { SyntaxNodeType.FloatLiteral, ReturnType.Float },
                 { SyntaxNodeType.BooleanLiteral, ReturnType.Char },
             }[this.Type];
+            Return = r;
             return r;
         }
         public override ReturnType CalcReturnType(SymbolTable symbols)
@@ -309,6 +313,7 @@ namespace MiniC.Compiler
                 { SyntaxNodeType.FloatLiteral, ReturnType.Float },
                 { SyntaxNodeType.BooleanLiteral, ReturnType.Char },
             }[this.Type];
+            Return = r;
             return r;
         }
     }
@@ -319,6 +324,12 @@ namespace MiniC.Compiler
         {
             symbol = new FunctionSymbol(block, Identifier.IdentifierName, ReturnType, ArgumentList);
             analyzer.AddSymbol(symbol);
+            foreach(FormalArgument arg in ArgumentList)
+            {
+                VariableSymbol symbol = new VariableSymbol(Block.BlockId, arg.VariableType, arg.Identifier.IdentifierName);
+                arg.Identifier.symbol = symbol;
+                analyzer.AddSymbol(symbol);
+            }
             Block.OnAnalyzerVisit(analyzer, block);
         }
     }
@@ -343,6 +354,7 @@ namespace MiniC.Compiler
         {
             symbol = new VariableSymbol(block, DeclareType, Identifier.IdentifierName);
             analyzer.AddSymbol(symbol);
+            Identifier.OnAnalyzerVisit(analyzer, block);
         }
     }
     partial class IfStatement

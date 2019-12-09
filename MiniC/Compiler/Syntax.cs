@@ -184,7 +184,7 @@ namespace MiniC.Compiler
             Statements = new List<Statement>();
             for (int i = 1; i < tokens.Count - 1;)
             {
-                if(tokens[i].Form.In(TokenForm.If, TokenForm.For, TokenForm.While))
+                if (tokens[i].Form.In(TokenForm.If, TokenForm.For, TokenForm.While))
                 {
                     int rightParen = Program.GetMatchParenIndex(tokens, i + 1);
                     int rightBracket = Program.GetMatchParenIndex(tokens, rightParen + 1);
@@ -272,11 +272,11 @@ namespace MiniC.Compiler
                 {
                     while (Operators.Count > 0)
                     {
-                        if(Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
+                        if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
                         {
                             Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
                         }
-                        else if(operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
+                        else if (operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
                         {
                             Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
                         }
@@ -345,7 +345,8 @@ namespace MiniC.Compiler
     partial class Identifier : PrimaryExpression
     {
         public string IdentifierName;
-        int BlockId;
+        [JsonIgnore]
+        public int BlockId;
 
         public Identifier(string value)
         {
@@ -429,7 +430,7 @@ namespace MiniC.Compiler
                     {
                         case TokenForm.Assignment:
                             int j = i + 1;
-                            while (tokens[j].Form != TokenForm.Comma)
+                            while (j < tokens.Count && tokens[j].Form != TokenForm.Comma)
                                 if (tokens[j].Form.In(TokenForm.LeftParen, TokenForm.LeftSquare, TokenForm.LeftBracket))
                                     j = Program.GetMatchParenIndex(tokens, j) + 1;
                                 else j++;
@@ -502,11 +503,11 @@ namespace MiniC.Compiler
             if (tokens[0].Form.In(TokenForm.Char, TokenForm.Float, TokenForm.Int, TokenForm.Void))
             {
                 Identifier = new Identifier(tokens[1].Value);
-                int i = 2, j = Program.GetMatchParenIndex(tokens, i);
+                int i = 3, j = Program.GetMatchParenIndex(tokens, 2);
                 while (i < j - 1)
                 {
                     int k = i;
-                    while (tokens[k].Form != TokenForm.Comma) k++;
+                    while (tokens[k].Form.NotIn(TokenForm.Comma, TokenForm.RightParen)) k++;
                     ArgumentList.Add(new FormalArgument(tokens.GetRange(i, k - i)));
                     i = k + 1;
                 }
@@ -550,6 +551,7 @@ namespace MiniC.Compiler
             while (tokens[k].Form != TokenForm.SemiColon) k++;
             Test = Expression.ParseExpression(tokens.GetRange(i, k - i));
             Update = Expression.ParseExpression(tokens.GetRange(k + 1, j - k - 1));
+            Block = new BlockStatement(tokens.GetRange(j+1, tokens.Count - j -1));
         }
     }
     partial class WhileStatement : Statement
@@ -691,7 +693,7 @@ namespace MiniC.Compiler
                 {
                     while (j < tokens.Count && tokens[j].Form != TokenForm.Comma && tokens[j].Form != TokenForm.RightParen)
                         if (tokens[j].Form.In(TokenForm.LeftParen, TokenForm.LeftSquare, TokenForm.LeftBracket))
-                            j = Program.GetMatchParenIndex(tokens, j);
+                            j = Program.GetMatchParenIndex(tokens, j)+1;
                         else j++;
                     Arguments.Add(Expression.ParseExpression(tokens.GetRange(i, j - i)));
                     i = j + 1;

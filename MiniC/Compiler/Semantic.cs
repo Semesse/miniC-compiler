@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -262,6 +263,7 @@ namespace MiniC.Compiler
     }
     partial class Identifier
     {
+        [JsonIgnore]
         public Symbol symbol;
         // This is VISITED only within Expression as an variable
         // In FunctionDecl and VariableDecl it is added to SymbolTable
@@ -319,6 +321,7 @@ namespace MiniC.Compiler
     }
     partial class FunctionDeclaration
     {
+        [JsonIgnore]
         FunctionSymbol symbol;
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
@@ -478,6 +481,7 @@ namespace MiniC.Compiler
     }
     partial class FunctionCall
     {
+        [JsonIgnore]
         FunctionSymbol Symbol;
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
@@ -488,6 +492,7 @@ namespace MiniC.Compiler
             Symbol = analyzer.FindFunction(Identifier.IdentifierName, Arguments);
             if (Symbol == null)
                 throw new SemanticError($"No corresponding function defined as {this.Identifier.IdentifierName}");
+            Return = Symbol.ReturnType;
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {

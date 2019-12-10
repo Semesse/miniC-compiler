@@ -16,7 +16,7 @@ namespace MiniC.Compiler
             System.IO.File.WriteAllText(FileName, asm);
             ProcessStartInfo p = new ProcessStartInfo();
             p.FileName = "gcc.exe";
-            p.Arguments = $"-m32 -o {OutputExecutable} {FileName}";
+            p.Arguments = $"-m32 -gstabs -o {OutputExecutable} {FileName}";
             p.WindowStyle = ProcessWindowStyle.Hidden;
             p.CreateNoWindow = true;
             int exitCode;
@@ -27,6 +27,8 @@ namespace MiniC.Compiler
                 // Retrieve the app's exit code
                 exitCode = proc.ExitCode;
             }
+            if (exitCode != 0)
+                throw new Exception("Generate executable failed");
         }
         public static void Run()
         {

@@ -165,7 +165,7 @@ namespace MiniC
                 SetText(display, code);
                 return code;
             }
-            catch(SemanticError e)
+            catch (SemanticError e)
             {
                 SetText(display, e.Message);
             }
@@ -179,6 +179,8 @@ namespace MiniC
         }
         private void Highlight()
         {
+            string text = GetText(input);
+            SetText(input, text);
             lexer.SetSource(GetText(input));
             tokens = lexer.Tokenize();
             TextPointer pointer = input.Document.ContentStart, start, end;
@@ -256,56 +258,7 @@ namespace MiniC
         {
             if (e.Key == Key.Space)
             {
-                Highlight();
-                //lexer.SetSource(GetText(input));
-                //tokens = lexer.Tokenize();
-                //TextPointer pointer = input.Document.ContentStart, start, end;
-                //int lastEnd = 0;
-                //foreach (Token token in tokens)
-                //{
-                //    if (token.Type == TokenType.Keyword)
-                //    {
-                //        int tmp = token.Location - lastEnd;
-                //        GetPointer(pointer,
-                //            tmp, tmp + token.Value.Length,
-                //            out start, out end);
-                //        //input.Selection.Select(start, end);
-                //        //input.SelectionBrush = keywordBrush;
-                //        SetColor(new TextRange(start, end), KeywordBrush);
-                //        pointer = end;
-                //        lastEnd = token.Location + token.Value.Length - 1;
-                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                //        //input.SelectionBrush = Brushes.Black;
-                //    }
-                //    else if (token.Type == TokenType.Comment || token.Type == TokenType.Macro)
-                //    {
-                //        int tmp = token.Location - lastEnd;
-                //        GetPointer(pointer,
-                //            tmp, tmp + token.Value.Length,
-                //            out start, out end);
-                //        //input.Selection.Select(start, end);
-                //        //input.SelectionBrush = keywordBrush;
-                //        SetColor(new TextRange(start, end), CommentBrush);
-                //        pointer = end;
-                //        lastEnd = token.Location + token.Value.Length;
-                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                //        //input.SelectionBrush = Brushes.Black;
-                //    }
-                //    else if (token.Form.In(TokenForm.StringLiteral, TokenForm.CharLiteral, TokenForm.BooleanLiteral))
-                //    {
-                //        int tmp = token.Location - lastEnd;
-                //        GetPointer(pointer,
-                //            tmp, tmp + token.Value.Length,
-                //            out start, out end);
-                //        //input.Selection.Select(start, end);
-                //        //input.SelectionBrush = keywordBrush;
-                //        SetColor(new TextRange(start, end), LiteralBrush);
-                //        pointer = end;
-                //        lastEnd = token.Location + token.Value.Length - 1;
-                //        //input.Selection.Select(input.Document.ContentEnd, input.Document.ContentEnd);
-                //        //input.SelectionBrush = Brushes.Black;
-                //    }
-                //}
+                //Highlight();
             }
             else if (e.Key == Key.Tab)
             {

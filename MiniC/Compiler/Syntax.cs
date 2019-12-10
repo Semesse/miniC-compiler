@@ -188,14 +188,20 @@ namespace MiniC.Compiler
                 {
                     int rightParen = Program.GetMatchParenIndex(tokens, i + 1);
                     int rightBracket = Program.GetMatchParenIndex(tokens, rightParen + 1);
-                    Statements.Add(Statement.ParseStatement(tokens.GetRange(i, rightBracket - i)));
+                    Statements.Add(Statement.ParseStatement(tokens.GetRange(i, rightBracket - i + 1)));
                     i = rightBracket + 1;
                 }
                 else
                 {
                     for (int j = i; i < tokens.Count - 1; j++)
                     {
-                        if (tokens[j].Form == TokenForm.SemiColon)
+                        if(j >= tokens.Count - 1)
+                        {
+                            Statements.Add(Statement.ParseStatement(tokens.GetRange(i, tokens.Count - i + 1)));
+                            i = j;
+                            break;
+                        }
+                        else if (tokens[j].Form == TokenForm.SemiColon)
                         {
                             Statements.Add(Statement.ParseStatement(tokens.GetRange(i, j - i)));
                             i = j + 1;
@@ -528,9 +534,9 @@ namespace MiniC.Compiler
         public IfStatement(List<Token> tokens)
         {
             Type = SyntaxNodeType.IfStatement;
-            int i = 1, j = Program.GetMatchParenIndex(tokens, i);
-            Test = Expression.ParseExpression(tokens.GetRange(i + 1, j - i - 1));
-            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
+            int i = 1, j = Program.GetMatchParenIndex(tokens, i) + 1;
+            Test = Expression.ParseExpression(tokens.GetRange(i + 1, j - i));
+            Block = new BlockStatement(tokens.GetRange(j, tokens.Count - j));
         }
     }
     partial class ForStatement : Statement
@@ -551,7 +557,7 @@ namespace MiniC.Compiler
             while (tokens[k].Form != TokenForm.SemiColon) k++;
             Test = Expression.ParseExpression(tokens.GetRange(i, k - i));
             Update = Expression.ParseExpression(tokens.GetRange(k + 1, j - k - 1));
-            Block = new BlockStatement(tokens.GetRange(j+1, tokens.Count - j -1));
+            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j - 1));
         }
     }
     partial class WhileStatement : Statement
@@ -668,11 +674,16 @@ namespace MiniC.Compiler
             Type = SyntaxNodeType.UnaryExpression;
             Operator = new Dictionary<TokenForm, UnaryOperator>() {
                 { TokenForm.Not, UnaryOperator.Not },
-                { TokenForm.Address, UnaryOperator.Address }
+                { TokenForm.Address, UnaryOperator.Address },
+                { TokenForm.Dereference, UnaryOperator.Dereference }
             }[op.Form];
             if (op.Form == TokenForm.Address && expression.Type != SyntaxNodeType.Identifier)
             {
                 throw new ParseException($"rvalue cannot do & Operation at line {op.Line}");
+            }
+            if (op.Form == TokenForm.Dereference && expression.Type != SyntaxNodeType.Identifier)
+            {
+                throw new ParseException($"rvalue cannot do @ Operation at line {op.Line}");
             }
             Expression = expression;
         }
@@ -693,7 +704,7 @@ namespace MiniC.Compiler
                 {
                     while (j < tokens.Count && tokens[j].Form != TokenForm.Comma && tokens[j].Form != TokenForm.RightParen)
                         if (tokens[j].Form.In(TokenForm.LeftParen, TokenForm.LeftSquare, TokenForm.LeftBracket))
-                            j = Program.GetMatchParenIndex(tokens, j)+1;
+                            j = Program.GetMatchParenIndex(tokens, j) + 1;
                         else j++;
                     Arguments.Add(Expression.ParseExpression(tokens.GetRange(i, j - i)));
                     i = j + 1;

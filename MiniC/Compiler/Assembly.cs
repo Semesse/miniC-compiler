@@ -395,8 +395,8 @@ namespace MiniC.Compiler
                 }
             }
             Block.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tleave");
-            assembler.EmitCode($"\tret");
+            //assembler.EmitCode($"\tleave");
+            //assembler.EmitCode($"\tret");
         }
     }
     partial class FormalArgument
@@ -436,7 +436,7 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjne _SEM_ENDIF");
+            assembler.EmitCode($"\tjne _SEM_ENDIF{count}");
             Block.OnCodeGenVisit(assembler);
             assembler.EmitCode($"_SEM_ENDIF{count}:");
             count++;
@@ -485,6 +485,8 @@ namespace MiniC.Compiler
                 assembler.EmitCode($"\tcall _system");
                 //assembler.EmitCode($"\tpopl %eax");
             }
+            assembler.EmitCode($"\tleave");
+            assembler.EmitCode($"\tret");
         }
     }
     partial class ExpressionStatement
@@ -520,10 +522,9 @@ namespace MiniC.Compiler
         }
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            Left.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tmovl %eax,%edx");
             Right.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\txchg %eax,%edx");
+            assembler.EmitCode($"\tmovl %eax,%edx");
+            Left.OnCodeGenVisit(assembler);
             ReturnType leftType = Left.GetReturnType(), rightType = Right.GetReturnType();
             string postfix = "", regA = "", regB = "";
             switch (Cast(leftType,rightType))
@@ -532,12 +533,19 @@ namespace MiniC.Compiler
                     postfix = "b";
                     regA = "%al";
                     regB = "%dl";
+                    Return = ReturnType.Char;
                     break;
                 case ReturnType.Float:
+                    postfix = "l";
+                    regA = "%eax";
+                    regB = "%edx";
+                    Return = ReturnType.Float;
+                    break;
                 case ReturnType.Int:
                     postfix = "l";
                     regA = "%eax";
                     regB = "%edx";
+                    Return = ReturnType.Int;
                     break;
             }
             switch (this.Operator)
@@ -561,37 +569,37 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tor{postfix} {regB},{regA}");
                     break;
                 case BinaryOperator.Equal:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsete %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsetge %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterThan:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsetg %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.LessEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsetl %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.LessThan:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsetle %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.NotEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
                     assembler.EmitCode($"\tsetne %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
@@ -611,8 +619,13 @@ namespace MiniC.Compiler
                     break;
                 case UnaryOperator.Address:
                     if (Expression.Type != SyntaxNodeType.Identifier) throw new SemanticError("Cannot address rvalue");
-                    Identifier variable = Expression.As<Identifier>();
-                    assembler.EmitCode($"\tleal {assembler.GetVariableOffset(variable)},%eax");
+                    Identifier addrVariable = Expression.As<Identifier>();
+                    assembler.EmitCode($"\tleal {assembler.GetVariableOffset(addrVariable)}(%ebp),%eax");
+                    break;
+                case UnaryOperator.Dereference:
+                    if (Expression.Type != SyntaxNodeType.Identifier) throw new SemanticError("Cannot address rvalue");
+                    Identifier derefVariable = Expression.As<Identifier>();
+                    assembler.EmitCode($"\tleal {assembler.GetVariableOffset(derefVariable)}(%ebp),%eax");
                     break;
             }
         }
@@ -622,7 +635,9 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Stack<Expression> parameters = new Stack<Expression>();
-            foreach(Expression arg in Arguments)
+            assembler.EmitCode($"\tpushl %edx");
+            int count = 0;
+            foreach (Expression arg in Arguments)
             {
                 parameters.Push(arg);
             }
@@ -631,8 +646,11 @@ namespace MiniC.Compiler
                 Expression arg = parameters.Pop();
                 arg.OnCodeGenVisit(assembler);
                 assembler.EmitCode($"\tpushl %eax");
+                count++;
             }
             assembler.EmitCode($"\tcall {Symbol.AsmLabel}");
+            assembler.EmitCode($"\taddl ${count*4},%esp");
+            assembler.EmitCode($"\tpopl %edx");
         }
     }
 }

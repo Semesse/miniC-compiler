@@ -34,13 +34,13 @@ namespace MiniC.Compiler
         }
         void ProcessMacro()
         {
-            Dictionary<dynamic, Token> Replace = new Dictionary<dynamic, Token>();
+            Dictionary<string, Token> Replace = new Dictionary<string, Token>();
             for(int i = 0; i < tokens.Count; i++)
             {
                 if (tokens[i].Type == TokenType.Macro)
                 {
                     List<Token> t = Lexer.TokenizeMacro(tokens[i]);
-                    Replace.Add(t[1], t[2]);
+                    Replace.Add((string)t[1].Value, t[2]);
                     tokens.RemoveAt(i);
                 }
             }
@@ -51,7 +51,7 @@ namespace MiniC.Compiler
                     try
                     {
                         Token tmp;
-                        Replace.TryGetValue(tokens[i].Value, out tmp);
+                        Replace.TryGetValue((string)tokens[i].Value, out tmp);
                         if(tmp != null)
                         {
                             tokens[i].Type = tmp.Type;

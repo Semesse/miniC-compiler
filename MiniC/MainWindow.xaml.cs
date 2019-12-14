@@ -179,8 +179,8 @@ namespace MiniC
         }
         private void Highlight()
         {
-            string text = GetText(input);
-            SetText(input, text);
+            //string text = GetText(input);
+            //SetText(input, text);
             lexer.SetSource(GetText(input));
             tokens = lexer.Tokenize();
             TextPointer pointer = input.Document.ContentStart, start, end;

@@ -33,7 +33,7 @@ namespace MiniC.Compiler
             SymbolName = name;
             ReturnType = type;
             Arguments = arguments;
-            if ("main,scanf,printf".Contains(name))
+            if ("main,scanf,printf,sleep".Contains(name))
             {
                 AsmLabel = $"_{name}";
             }
@@ -90,6 +90,7 @@ namespace MiniC.Compiler
             PredefinedFunctions = new List<FunctionSymbol>();
             PredefinedFunctions.Add(new FunctionSymbol(0, "printf", ReturnType.Void, null));
             PredefinedFunctions.Add(new FunctionSymbol(0, "scanf", ReturnType.Void, null));
+            PredefinedFunctions.Add(new FunctionSymbol(0, "sleep", ReturnType.Void, null));
             //FunctionSymbols.Add(new FunctionSymbol(0, "pow", ReturnType., null));
         }
         public void AddSymbol(VariableSymbol symbol)
@@ -120,6 +121,11 @@ namespace MiniC.Compiler
             else if (functionName == "printf" && arguments[0].Type == SyntaxNodeType.StringLiteral)
             {
                 return PredefinedFunctions[0];
+            }
+            else if (functionName == "sleep"
+                && arguments[0].Type == SyntaxNodeType.IntegerLiteral || arguments[0].Type == SyntaxNodeType.Identifier)
+            {
+                return PredefinedFunctions[2];
             }
             List<ReturnType> argTypes = arguments.ConvertAll<ReturnType>(x =>
             {

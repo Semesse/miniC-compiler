@@ -139,7 +139,7 @@ namespace MiniC.Compiler
         {
             switch (tokens[0].Form)
             {
-                case TokenForm.Int:
+                case TokenForm.Integer:
                 case TokenForm.Float:
                 case TokenForm.Char:
                     if (tokens.Count <= 2)
@@ -382,7 +382,7 @@ namespace MiniC.Compiler
         public Identifier Identifier;
         Dictionary<TokenForm, VariableType> VariableTypes = new Dictionary<TokenForm, VariableType>()
         {
-            {TokenForm.Int, VariableType.Int },
+            {TokenForm.Integer, VariableType.Int },
             {TokenForm.Char, VariableType.Char },
             {TokenForm.Float, VariableType.Float }
         };
@@ -405,7 +405,7 @@ namespace MiniC.Compiler
         public List<VariableDeclarator> Declarators;
         Dictionary<TokenForm, VariableType> VariableTypes = new Dictionary<TokenForm, VariableType>()
         {
-            {TokenForm.Int, VariableType.Int },
+            {TokenForm.Integer, VariableType.Int },
             {TokenForm.Char, VariableType.Char },
             {TokenForm.Float, VariableType.Float }
         };
@@ -488,7 +488,7 @@ namespace MiniC.Compiler
         public BlockStatement Block;
         static Dictionary<TokenForm, ReturnType> ReturnTypes = new Dictionary<TokenForm, ReturnType>()
         {
-            {TokenForm.Int, ReturnType.Int },
+            {TokenForm.Integer, ReturnType.Int },
             {TokenForm.Char, ReturnType.Char },
             {TokenForm.Float, ReturnType.Float },
             {TokenForm.Void, ReturnType.Void }
@@ -506,7 +506,7 @@ namespace MiniC.Compiler
             ArgumentList = new List<FormalArgument>();
             Type = SyntaxNodeType.FunctionDeclaration;
             ReturnType = ReturnTypes[tokens[0].Form];
-            if (tokens[0].Form.In(TokenForm.Char, TokenForm.Float, TokenForm.Int, TokenForm.Void))
+            if (tokens[0].Form.In(TokenForm.Char, TokenForm.Float, TokenForm.Integer, TokenForm.Void))
             {
                 Identifier = new Identifier(tokens[1].Value);
                 int i = 3, j = Program.GetMatchParenIndex(tokens, 2);

@@ -450,7 +450,8 @@ namespace MiniC.Compiler
             Init.OnCodeGenVisit(assembler);
             assembler.EmitCode($"_SEM_FOR{count}:");
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjge _SEM_ENDFOR{count}");
+            assembler.EmitCode($"\tcmpl $0,%eax");
+            assembler.EmitCode($"\tje _SEM_ENDFOR{count}");
             Block.OnCodeGenVisit(assembler);
             Update.OnCodeGenVisit(assembler);
             assembler.EmitCode($"\tjmp _SEM_FOR{count}");
@@ -569,37 +570,37 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tor{postfix} {regB},{regA}");
                     break;
                 case BinaryOperator.Equal:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsete %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetge %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterThan:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetg %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.LessEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
-                    assembler.EmitCode($"\tsetl %al");
-                    if (postfix == "l")
-                        assembler.EmitCode($"\tmovzbl %al,%eax");
-                    break;
-                case BinaryOperator.LessThan:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetle %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
+                case BinaryOperator.LessThan:
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tsetl %al");
+                    if (postfix == "l")
+                        assembler.EmitCode($"\tmovzbl %al,%eax");
+                    break;
                 case BinaryOperator.NotEqual:
-                    assembler.EmitCode($"\tcmp{postfix} {regA},{regB}");
+                    assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsetne %al");
                     if (postfix == "l")
                         assembler.EmitCode($"\tmovzbl %al,%eax");

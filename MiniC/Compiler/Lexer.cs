@@ -62,7 +62,7 @@ namespace MiniC.Compiler
 
         public static readonly Dictionary<string, TokenForm> keyTokenForm = new Dictionary<string, TokenForm>()
         {
-            {"int", TokenForm.Int},
+            {"int", TokenForm.Integer},
             {"float", TokenForm.Float},
             {"char", TokenForm.Char},
             {"void", TokenForm.Void},

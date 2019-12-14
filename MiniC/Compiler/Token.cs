@@ -19,7 +19,7 @@ namespace MiniC.Compiler
 
     enum TokenForm
     {
-        Int,
+        Integer,
         Float,
         Char,
         Void,
@@ -103,7 +103,7 @@ namespace MiniC.Compiler
             count = 0;
         }
         public override string ToString() {
-            return $"line {Line}\t{Type}/{Form}\t{Value}";
+            return $"行{Line}\t{Type} / {Form}\t{Value}";
         }
     }
 }

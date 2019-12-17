@@ -108,7 +108,7 @@ namespace MiniC.Compiler
             switch (type)
             {
                 case VariableType.Char:
-                    if(ParameterCharCount % 4 == 0)
+                    if (ParameterCharCount % 4 == 0)
                     {
                         LocalBytes += 4;
                         ParameterCharCount++;
@@ -162,7 +162,7 @@ namespace MiniC.Compiler
         }
         public int GetOffset(Identifier variable)
         {
-            return VarOffset[variable] ;
+            return VarOffset[variable];
         }
     }
     class AssemblyGenerator
@@ -192,7 +192,7 @@ namespace MiniC.Compiler
                 mem = Memory[block];
                 //Memory.TryGetValue(block, out mem);
             }
-            catch(KeyNotFoundException)
+            catch (KeyNotFoundException)
             {
                 mem = new StackMemory();
                 Memory.Add(block, mem);
@@ -250,9 +250,9 @@ namespace MiniC.Compiler
         }
         public string Generate()
         {
-            foreach(Literal literal in symbols.Literals)
+            foreach (Literal literal in symbols.Literals)
             {
-                if(literal.Type == SyntaxNodeType.StringLiteral)
+                if (literal.Type == SyntaxNodeType.StringLiteral)
                 {
                     string label = $"SL{StringConstants.Count}";
                     EmitCode($"{label}:");
@@ -264,13 +264,13 @@ namespace MiniC.Compiler
             string pause = $"SL{StringConstants.Count}";
             EmitCode($"{pause}:");
             EmitCode($"\t.ascii \"pause\\0\"");
-            foreach(FunctionSymbol function in symbols.FunctionSymbols)
+            foreach (FunctionSymbol function in symbols.FunctionSymbols)
             {
                 EmitCode($"\t.globl {function.AsmLabel}");
             }
             tree.root.OnCodeGenVisit(this);
             string code = "";
-            foreach(string instruction in Instructions)
+            foreach (string instruction in Instructions)
             {
                 code += instruction + "\r\n";
             }
@@ -354,11 +354,11 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tmovl $0, %eax");
                     break;
                 case SyntaxNodeType.BooleanLiteral:
-                    if(Value == "true")
+                    if (Value == "true")
                     {
                         assembler.EmitCode($"\tmovl $-1, %eax");
                     }
-                    else if(Value == "false")
+                    else if (Value == "false")
                     {
                         assembler.EmitCode($"\t movl $0, %eax");
                     }
@@ -375,7 +375,7 @@ namespace MiniC.Compiler
     {
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            foreach(FormalArgument arg in ArgumentList)
+            foreach (FormalArgument arg in ArgumentList)
             {
                 assembler.AllocMemory(Block.BlockId, arg);
             }
@@ -384,12 +384,12 @@ namespace MiniC.Compiler
             assembler.EmitCode($"\tmovl %esp, %ebp");
             assembler.EmitCode($"\tandl $-16, %esp");
             int TotalBytes = assembler.GetParameterBytes(Block.BlockId);
-            if(TotalBytes != 0)
+            if (TotalBytes != 0)
                 assembler.EmitCode($"\tsubl ${(TotalBytes >= 16 ? TotalBytes : 16)}, %esp");
             if (Identifier.IdentifierName == "main")
             {
                 assembler.EmitCode($"\tcall ___main");
-                foreach(Statement s in Block.Statements.Where(s => s.Type == SyntaxNodeType.ReturnStatement))
+                foreach (Statement s in Block.Statements.Where(s => s.Type == SyntaxNodeType.ReturnStatement))
                 {
                     ((ReturnStatement)s).ShouldPause = true;
                 }
@@ -410,7 +410,7 @@ namespace MiniC.Compiler
     {
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
-            foreach(VariableDeclarator declarator in Declarators)
+            foreach (VariableDeclarator declarator in Declarators)
             {
                 declarator.OnCodeGenVisit(assembler);
             }
@@ -436,7 +436,8 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjne _SEM_ENDIF{count}");
+            assembler.EmitCode($"\tcmpl $0,%eax");
+            assembler.EmitCode($"\tje _SEM_ENDIF{count}");
             Block.OnCodeGenVisit(assembler);
             assembler.EmitCode($"_SEM_ENDIF{count}:");
             count++;
@@ -466,7 +467,8 @@ namespace MiniC.Compiler
         {
             assembler.EmitCode($"_SEM_WHILE{count}:");
             Test.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tjge _SEM_ENDWHILE{count}");
+            assembler.EmitCode($"\tcmpl $0,%eax");
+            assembler.EmitCode($"\tje _SEM_ENDWHILE{count}");
             Block.OnCodeGenVisit(assembler);
             assembler.EmitCode($"\tjmp _SEM_WHILE{count}");
             assembler.EmitCode($"_SEM_ENDWHILE{count}:");
@@ -515,6 +517,7 @@ namespace MiniC.Compiler
     }
     partial class BinaryExpression
     {
+        static int LogicCount = 0;
         ReturnType Cast(ReturnType a, ReturnType b)
         {
             if (a == ReturnType.Float || b == ReturnType.Float) return ReturnType.Float;
@@ -524,11 +527,13 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Right.OnCodeGenVisit(assembler);
-            assembler.EmitCode($"\tmovl %eax,%edx");
+            //assembler.EmitCode($"\tmovl %eax,%edx");
+            assembler.EmitCode($"\tpushl %eax");
             Left.OnCodeGenVisit(assembler);
+            assembler.EmitCode($"\tpopl %edx");
             ReturnType leftType = Left.GetReturnType(), rightType = Right.GetReturnType();
             string postfix = "", regA = "", regB = "";
-            switch (Cast(leftType,rightType))
+            switch (Cast(leftType, rightType))
             {
                 case ReturnType.Char:
                     postfix = "b";
@@ -564,16 +569,33 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tidiv{postfix} {regB},{regA}");
                     break;
                 case BinaryOperator.And:
-                    assembler.EmitCode($"\tand{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} $0,{regB}");
+                    assembler.EmitCode($"\tjz LGF{LogicCount}");
+                    assembler.EmitCode($"\tcmp{postfix} $0,{regA}");
+                    assembler.EmitCode($"\tjz LGF{LogicCount}");
+                    assembler.EmitCode($"\tmovl $1,%eax");
+                    assembler.EmitCode($"\tjmp LGE{LogicCount}");
+                    assembler.EmitCode($"LGF{LogicCount}:");
+                    assembler.EmitCode($"\tmovl $0,%eax");
+                    assembler.EmitCode($"LGE{LogicCount}:");
+                    LogicCount++;
                     break;
                 case BinaryOperator.Or:
-                    assembler.EmitCode($"\tor{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tcmp{postfix} $0,{regB}");
+                    assembler.EmitCode($"\tjnz LGT{LogicCount}");
+                    assembler.EmitCode($"\tcmp{postfix} $0,{regA}");
+                    assembler.EmitCode($"\tjnz LGT{LogicCount}");
+                    assembler.EmitCode($"\tmovl $0,%eax");
+                    assembler.EmitCode($"\tjmp LGE{LogicCount}");
+                    assembler.EmitCode($"LGT{LogicCount}:");
+                    assembler.EmitCode($"\tmovl $1,%eax");
+                    assembler.EmitCode($"LGE{LogicCount}:");
+                    LogicCount++;
                     break;
                 case BinaryOperator.Equal:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
                     assembler.EmitCode($"\tsete %al");
-                    if (postfix == "l")
-                        assembler.EmitCode($"\tmovzbl %al,%eax");
+                    assembler.EmitCode($"\tmovzbl %al,%eax");
                     break;
                 case BinaryOperator.GreaterEqual:
                     assembler.EmitCode($"\tcmp{postfix} {regB},{regA}");
@@ -636,13 +658,13 @@ namespace MiniC.Compiler
         public override void OnCodeGenVisit(AssemblyGenerator assembler)
         {
             Stack<Expression> parameters = new Stack<Expression>();
-            assembler.EmitCode($"\tpushl %edx");
+            //assembler.EmitCode($"\tpushl %edx");
             int count = 0;
             foreach (Expression arg in Arguments)
             {
                 parameters.Push(arg);
             }
-            while(parameters.Count != 0)
+            while (parameters.Count != 0)
             {
                 Expression arg = parameters.Pop();
                 arg.OnCodeGenVisit(assembler);
@@ -650,8 +672,8 @@ namespace MiniC.Compiler
                 count++;
             }
             assembler.EmitCode($"\tcall {Symbol.AsmLabel}");
-            assembler.EmitCode($"\taddl ${count*4},%esp");
-            assembler.EmitCode($"\tpopl %edx");
+            assembler.EmitCode($"\taddl ${count * 4},%esp");
+            //assembler.EmitCode($"\tpopl %edx");
         }
     }
 }

@@ -173,9 +173,15 @@ namespace MiniC
         }
         private void Run()
         {
-            string code = GenerateASM();
-            Runner.AssembleAndLink(code);
-            Runner.Run();
+            try
+            {
+                string code = GenerateASM();
+                Runner.AssembleAndLink(code);
+                Runner.Run();
+            }catch(Exception e)
+            {
+                SetText(display, e.Message);
+            }
         }
         private void Highlight()
         {

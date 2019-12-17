@@ -122,8 +122,7 @@ namespace MiniC.Compiler
             {
                 return PredefinedFunctions[0];
             }
-            else if (functionName == "sleep"
-                && arguments[0].Type == SyntaxNodeType.IntegerLiteral || arguments[0].Type == SyntaxNodeType.Identifier)
+            else if (functionName == "sleep" && arguments[0].GetReturnType() == ReturnType.Int)
             {
                 return PredefinedFunctions[2];
             }
@@ -333,7 +332,7 @@ namespace MiniC.Compiler
         {
             symbol = new FunctionSymbol(block, Identifier.IdentifierName, ReturnType, ArgumentList);
             analyzer.AddSymbol(symbol);
-            foreach(FormalArgument arg in ArgumentList)
+            foreach (FormalArgument arg in ArgumentList)
             {
                 VariableSymbol symbol = new VariableSymbol(Block.BlockId, arg.VariableType, arg.Identifier.IdentifierName);
                 arg.Identifier.symbol = symbol;

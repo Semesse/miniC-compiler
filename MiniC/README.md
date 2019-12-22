@@ -2,66 +2,29 @@
 
 这是编译原理课程设计的作业，实现的语言为 C语言 的一个子集。
 
-支持的语句和运算：
+### 功能和特性
 
-（1）数据类型：int，char，void，float
-
-（2）语句：赋值（=），if, while，for
-
-（3）算术运算：+，－，*，/
-
-（4）关系运算：==，>，<，>=，<=，!=
-
-（5）逻辑运算：&&，||，!
-
-（6）函数的定义、调用
-
-（7）支持复合语句，即 ｛｝ 包含的语句
-
-（8）注释： C 类型的多行注释 /* */ 和 C++ 类型的单行注释 //
-
-（9）宏定义
+带有一个有代码高亮功能的编辑器（仅粘贴时），支持宏定义、局部变量，遵循cdecl调用约定。生成AT&T格式的汇编代码，可与libc链接。
 
 文法：
-
-	Program -> Statements
-
-	Statements ->  Statement |  Statement Statements
-
-	BlockStatement -> '{' Statements '}'
-
-	Statement -> VariableDeclaration | FunctionDeclaration | ExpressionStatement | IfStatement | WhileStatement | ForStatement | ReturnStatement | Expression
-
-	VariableDeclaration -> VariableType Variables ';'
-
-	Variables -> Variable ',' Variables | Variable
-
-	Variable -> Identifier | Identifier '=' InitialValue
-
-	InitialValue -> Expression
-
-	FunctionDeclaration -> ReturnType Identifier '(' ArgumentList ')' BlockStatement ';'
-
-	ArgumentList -> Identifier ',' ArgumentList | Identifier | eps
-
-	ExpressionStatement -> Expression ';'
-
-	Expression -> AssignmentExpression | BinaryExpression | UnaryExpression | PrimaryExpression
-
-	AssignmentExpression -> Identifier '=' Expression
-
-	FunctionCall -> Identifier '(' ArgumentList ')'
-
-	BinaryExpression -> Expression BinaryOperator Expression
-
-	UnaryExpression -> UnaryOperator Expression
-
-	PrimaryExpression -> Identifier | Literal | FunctionCall
-
-	IfStatement -> 'if' '(' Expression ')' BlockStatement | 'if' '(' Expression ')' BlockStatement else Blockstatement
-
-	WhileStatement -> 'while' '(' Expression ')' BlockStatement
-
-	ForStatement -> 'for' '(' InitFor ';' Expression ';' UpdateFor ')' BlockStatement
-
-	ReturnStatement -> 'return' Expression ';'
+1.Program -> Statements
+2.Statements ->  Statement |  Statement Statements
+3.BlockStatement -> '{' Statements '}'
+4.Statement -> VariableDeclaration | FunctionDeclaration | ExpressionStatement | IfStatement | WhileStatement | ForStatement | ReturnStatement | Expression
+5.VariableDeclaration -> VariableType Variables ';'
+6.Variables -> Variable ',' Variables | Variable
+7.Variable -> Identifier | Identifier '=' InitialValue
+8.InitialValue -> Expression
+9.FunctionDeclaration -> ReturnType Identifier '(' ArgumentList ')' BlockStatement ';'
+10.ArgumentList -> Identifier ',' ArgumentList | Identifier | eps
+11.ExpressionStatement -> Expression ';'
+12.Expression -> AssignmentExpression | BinaryExpression | UnaryExpression | PrimaryExpression
+13.AssignmentExpression -> Identifier '=' Expression
+14.FunctionCall -> Identifier '(' ArgumentList ')'
+15.BinaryExpression -> Expression BinaryOperator Expression
+16.UnaryExpression -> UnaryOperator Expression
+17.PrimaryExpression -> Identifier | Literal | FunctionCall
+18.IfStatement -> 'if' '(' Expression ')' BlockStatement | 'if' '(' Expression ')' BlockStatement else Blockstatement
+19.WhileStatement -> 'while' '(' Expression ')' BlockStatement
+20.ForStatement -> 'for' '(' Init ';' Expression ';' Update ')' BlockStatement
+21.ReturnStatement -> 'return' Expression ';'

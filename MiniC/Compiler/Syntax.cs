@@ -569,7 +569,7 @@ namespace MiniC.Compiler
             Type = SyntaxNodeType.WhileStatement;
             int i = 1, j = Program.GetMatchParenIndex(tokens, i);
             Test = Expression.ParseExpression(tokens.GetRange(i + 1, j - i - 1));
-            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j));
+            Block = new BlockStatement(tokens.GetRange(j + 1, tokens.Count - j - 1));
         }
     }
     partial class ReturnStatement : Statement

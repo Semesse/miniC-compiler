@@ -138,7 +138,7 @@ namespace MiniC
             }
             catch (ParseException e)
             {
-                SetText(display, e.Message);
+                SetText(display, e.Message + "\r\n" + e.StackTrace);
             }
         }
         private void SemanticAnalyze()
@@ -152,7 +152,7 @@ namespace MiniC
             }
             catch (SemanticError e)
             {
-                SetText(display, e.Message);
+                SetText(display, e.Message + "\r\n" + e.StackTrace);
             }
         }
         private string GenerateASM()
@@ -167,7 +167,7 @@ namespace MiniC
             }
             catch (SemanticError e)
             {
-                SetText(display, e.Message);
+                SetText(display, e.Message + "\r\n" + e.StackTrace);
             }
             return "";
         }
@@ -180,7 +180,7 @@ namespace MiniC
                 Runner.Run();
             }catch(Exception e)
             {
-                SetText(display, e.Message);
+                SetText(display, e.Message+"\r\n"+e.StackTrace);
             }
         }
         private void Highlight()

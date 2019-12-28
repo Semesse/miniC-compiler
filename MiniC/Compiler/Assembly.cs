@@ -566,7 +566,10 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\timul{postfix} {regB},{regA}");
                     break;
                 case BinaryOperator.Divide:
-                    assembler.EmitCode($"\tidiv{postfix} {regB},{regA}");
+                    assembler.EmitCode($"\tpushl %edx");
+                    assembler.EmitCode($"\tcltd");
+                    assembler.EmitCode($"\tidivl (%esp)");
+                    assembler.EmitCode($"\taddl $4,%esp");
                     break;
                 case BinaryOperator.And:
                     assembler.EmitCode($"\tcmp{postfix} $0,{regB}");
@@ -646,9 +649,7 @@ namespace MiniC.Compiler
                     assembler.EmitCode($"\tleal {assembler.GetVariableOffset(addrVariable)}(%ebp),%eax");
                     break;
                 case UnaryOperator.Dereference:
-                    if (Expression.Type != SyntaxNodeType.Identifier) throw new SemanticError("Cannot address rvalue");
-                    Identifier derefVariable = Expression.As<Identifier>();
-                    assembler.EmitCode($"\tleal {assembler.GetVariableOffset(derefVariable)}(%ebp),%eax");
+                    assembler.EmitCode($"\tmovl (%eax),%eax");
                     break;
             }
         }

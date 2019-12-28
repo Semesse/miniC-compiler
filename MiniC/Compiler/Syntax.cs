@@ -195,7 +195,7 @@ namespace MiniC.Compiler
                 {
                     for (int j = i; i < tokens.Count - 1; j++)
                     {
-                        if(j >= tokens.Count - 1)
+                        if (j >= tokens.Count - 1)
                         {
                             Statements.Add(Statement.ParseStatement(tokens.GetRange(i, tokens.Count - i + 1)));
                             i = j;
@@ -241,6 +241,7 @@ namespace MiniC.Compiler
                 {"&&", 2},
                 {"|", 3},
                 {"&", 3},
+                {"@", 3},
                 {"^", 4},
                 {"==", 6},
                 {"!=", 6},
@@ -272,19 +273,23 @@ namespace MiniC.Compiler
                     if (j < tokens.Count && tokens[j].Form == TokenForm.LeftParen)
                         j = Program.GetMatchParenIndex(tokens, j) + 1;
                     Operands.Push(PrimaryExpression.ParsePrimaryExpression(tokens.GetRange(i, j - i)));
+                    while (Operators.Count > 0 && Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address, TokenForm.Dereference))
+                        Operands.Push(new UnaryExpression(Operators.Pop(), Operands.Pop()));
                     i = j;
                 }
                 else if (tokens[i].Type == TokenType.Operator)
                 {
                     while (Operators.Count > 0)
                     {
-                        if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
+                        if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address, TokenForm.Dereference))
                         {
-                            Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
+                            break;
                         }
                         else if (operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
                         {
                             Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
+                            while (Operators.Count > 0 && Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address, TokenForm.Dereference))
+                                Operands.Push(new UnaryExpression(Operators.Pop(), Operands.Pop()));
                         }
                         else
                         {
@@ -293,24 +298,13 @@ namespace MiniC.Compiler
                     }
                     Operators.Push(tokens[i]);
                     i++;
-                    //if (tokens[i].Form.In(TokenForm.Not, TokenForm.Address))
-                    //{
-                    //    Operands.Push(new UnaryExpression(tokens[i], Operands.Pop()));
-                    //}
-                    //else
-                    //{
-                    //    while (Operators.Count > 0 && operatorPrecedence[tokens[i].Value] <= operatorPrecedence[Operators.Peek().Value])
-                    //    {
-                    //        Operands.Push(new BinaryExpression(Operands.Pop(), Operators.Pop(), Operands.Pop()));
-                    //    }
-                    //    Operators.Push(tokens[i]);
-                    //}
-                    //i++;
                 }
                 else if (tokens[i].Form.In(TokenForm.LeftParen))
                 {
                     int j = Program.GetMatchParenIndex(tokens, i);
                     Operands.Push(Expression.ParseExpression(tokens.GetRange(i + 1, j - i - 1)));
+                    while (Operators.Count > 0 && Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address, TokenForm.Dereference))
+                        Operands.Push(new UnaryExpression(Operators.Pop(), Operands.Pop()));
                     i = j;
                 }
                 else
@@ -320,7 +314,7 @@ namespace MiniC.Compiler
             }
             while (Operators.Count > 0)
             {
-                if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address))
+                if (Operators.Peek().Form.In(TokenForm.Not, TokenForm.Address, TokenForm.Dereference))
                 {
                     Operands.Push(new UnaryExpression(Operators.Pop(), Operands.Pop()));
                 }
@@ -680,10 +674,6 @@ namespace MiniC.Compiler
             if (op.Form == TokenForm.Address && expression.Type != SyntaxNodeType.Identifier)
             {
                 throw new ParseException($"rvalue cannot do & Operation at line {op.Line}");
-            }
-            if (op.Form == TokenForm.Dereference && expression.Type != SyntaxNodeType.Identifier)
-            {
-                throw new ParseException($"rvalue cannot do @ Operation at line {op.Line}");
             }
             Expression = expression;
         }

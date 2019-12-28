@@ -146,9 +146,6 @@ namespace MiniC.Compiler
             this.SyntaxTree = syntaxTree;
             SymbolTable = new SymbolTable();
         }
-        void AnalyzeRecursive(SyntaxNode current, int blockId)
-        {
-        }
         public SymbolTable Analyze()
         {
             try
@@ -403,6 +400,7 @@ namespace MiniC.Compiler
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             Expression.OnAnalyzerVisit(analyzer, block);
+            Expression.CalcReturnType(analyzer);
         }
     }
     partial class AssignmentExpression
@@ -435,6 +433,7 @@ namespace MiniC.Compiler
         {
             Left.OnAnalyzerVisit(analyzer, block);
             Right.OnAnalyzerVisit(analyzer, block);
+            Return = CalcReturnType(analyzer);
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {
@@ -474,6 +473,7 @@ namespace MiniC.Compiler
         public override void OnAnalyzerVisit(SemanticAnalyzer analyzer, int block)
         {
             Expression.OnAnalyzerVisit(analyzer, block);
+            Return = Expression.CalcReturnType(analyzer);
         }
         public override ReturnType CalcReturnType(SemanticAnalyzer analyzer)
         {
